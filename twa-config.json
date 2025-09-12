@@ -1,0 +1,46 @@
+{
+  "applicationId": "com.fittracker.workoutlogger",
+  "packageName": "com.fittracker.workoutlogger",
+  "name": "FitTracker",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "displayName": "FitTracker - Workout Logger",
+  "description": "Track your workouts offline with beautiful UI and progress analytics",
+  "backgroundColor": "#0a0a0a",
+  "themeColor": "#ea580c",
+  "startUrl": "/",
+  "iconUrl": "/fittracker-app-icon.png",
+  "maskableIconUrl": "/fittracker-app-icon.png",
+  "monochromeIconUrl": "/fittracker-app-icon.png",
+  "splashScreenColor": "#0a0a0a",
+  "navigationColor": "#0a0a0a",
+  "navigationDividerColor": "#ea580c",
+  "orientation": "portrait",
+  "display": "standalone",
+  "enableNotifications": true,
+  "shortcuts": [
+    {
+      "name": "Log Workout",
+      "url": "/log-workout",
+      "icon": "/plus-icon.png"
+    },
+    {
+      "name": "View Progress", 
+      "url": "/progress",
+      "icon": "/fittracker-badge-icon.png"
+    }
+  ],
+  "features": {
+    "locationService": false,
+    "playBilling": false,
+    "firstPartyPayments": false
+  },
+  "webManifestUrl": "/manifest.json",
+  "fallbackType": "customtabs",
+  "retainedBundles": [],
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 19,
+  "targetSdkVersion": 34
+}

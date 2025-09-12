@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTracker - Play Store Screenshots Generator</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ea580c;
+            margin-bottom: 30px;
+        }
+        
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .screenshot {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            aspect-ratio: 9/16;
+        }
+        
+        .phone-frame {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 20px 15px;
+            box-sizing: border-box;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 24px;
+            background: linear-gradient(to right, #ea580c, #f97316);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .app-content {
+            padding: 20px;
+            height: calc(100% - 64px);
+            overflow: hidden;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h2 {
+            margin: 0;
+            color: #1a1a1a;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .orange-btn {
+            background: #ea580c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ea580c;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .template-card {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .template-card h4 {
+            margin: 0 0 5px 0;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .template-card p {
+            margin: 0;
+            font-size: 8px;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ea580c, #f97316);
+            border-radius: 4px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #ea580c;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        
+        .nav-item {
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+        
+        .nav-item.active {
+            color: #ea580c;
+        }
+        
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin: 0 auto 2px;
+            background: currentColor;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+        
+        .download-btn {
+            background: #ea580c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        .download-btn:hover {
+            background: #dc2626;
+        }
+        
+        .feature-highlight {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .feature-highlight h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+        
+        .feature-highlight p {
+            margin: 0;
+            font-size: 10px;
+            opacity: 0.9;
+        }
+        
+        .exercise-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .exercise-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .exercise-item:last-child {
+            border-bottom: none;
+        }
+        
+        .chart-placeholder {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            height: 80px;
+            border-radius: 8px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-line {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            height: 2px;
+            background: linear-gradient(to right, #ea580c, #f97316);
+            transform-origin: left;
+            animation: drawLine 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes drawLine {
+            from { transform: scaleX(0.3); }
+            to { transform: scaleX(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏋️ FitTracker - Play Store Screenshots</h1>
+        
+        <div class="screenshot-grid">
+            <!-- Screenshot 1: Home Dashboard -->
+            <div class="screenshot" id="screenshot1">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>FitTracker</h2>
+                                <div class="orange-btn">🔥 Streak: 7</div>
+                            </div>
+                            
+                            <div class="feature-highlight">
+                                <h3>🎯 Welcome Back!</h3>
+                                <p>Ready for your next workout?</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h3 style="margin: 0 0 10px 0; font-size: 14px;">📊 This Week</h3>
+                                <div class="stat-item">
+                                    <span>Workouts Completed</span>
+                                    <span class="stat-value">5/6</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Total Volume</span>
+                                    <span class="stat-value">12,500 lbs</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Active Time</span>
+                                    <span class="stat-value">4h 20m</span>
+                                </div>
+                            </div>
+                            
+                            <div class="template-grid">
+                                <div class="template-card">
+                                    <h4>Upper Body</h4>
+                                    <p>45 min • 8 exercises</p>
+                                </div>
+                                <div class="template-card">
+                                    <h4>HIIT Cardio</h4>
+                                    <p>30 min • 6 exercises</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Progress</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Goals</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screenshot 2: Workout Templates -->
+            <div class="screenshot" id="screenshot2">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>Templates</h2>
+                                <div class="orange-btn">+ Create</div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
+                                <div style="background: #ea580c; color: white; padding: 4px 8px; border-radius: 15px; font-size: 10px;">All</div>
+                                <div style="background: #f3f4f6; padding: 4px 8px; border-radius: 15px; font-size: 10px;">Strength</div>
+                                <div style="background: #f3f4f6; padding: 4px 8px; border-radius: 15px; font-size: 10px;">Cardio</div>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 12px;">💪 Upper Body Strength</h4>
+                                        <p style="margin: 2px 0; font-size: 10px; color: #6b7280;">45 min • 8 exercises • Intermediate</p>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 10px;">👁️ Preview</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 12px;">🔥 HIIT Cardio</h4>
+                                        <p style="margin: 2px 0; font-size: 10px; color: #6b7280;">30 min • 6 exercises • Beginner</p>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 10px;">▶️ Start</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 12px;">🦵 Lower Body Power</h4>
+                                        <p style="margin: 2px 0; font-size: 10px; color: #6b7280;">50 min • 10 exercises • Advanced</p>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 10px;">👁️ Preview</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 12px;">🧘 Core & Flexibility</h4>
+                                        <p style="margin: 2px 0; font-size: 10px; color: #6b7280;">25 min • 5 exercises • Beginner</p>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 10px;">▶️ Start</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Progress</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Goals</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screenshot 3: Workout in Progress -->
+            <div class="screenshot" id="screenshot3">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>⏱️ 28:45</h2>
+                                <div class="orange-btn">⏸️ Pause</div>
+                            </div>
+                            
+                            <div class="feature-highlight">
+                                <h3>💪 Upper Body Strength</h3>
+                                <p>Exercise 3 of 8 • Great job! Keep going</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 style="margin: 0 0 10px 0; font-size: 14px;">🏋️ Bench Press</h4>
+                                <div style="background: white; border-radius: 8px; padding: 10px;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; text-align: center; font-size: 9px;">
+                                        <div>Set</div>
+                                        <div>Weight</div>
+                                        <div>Reps</div>
+                                        <div>✓</div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; text-align: center; font-size: 10px; margin-top: 5px;">
+                                        <div>1</div>
+                                        <div>135 lbs</div>
+                                        <div>10</div>
+                                        <div style="color: #ea580c;">✓</div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; text-align: center; font-size: 10px; margin-top: 3px;">
+                                        <div>2</div>
+                                        <div>145 lbs</div>
+                                        <div>8</div>
+                                        <div style="color: #ea580c;">✓</div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; text-align: center; font-size: 10px; margin-top: 3px; background: #fef3cd; border-radius: 4px; padding: 2px;">
+                                        <div>3</div>
+                                        <div>155 lbs</div>
+                                        <div>6</div>
+                                        <div>⏸️</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px;">
+                                <div class="orange-btn" style="flex: 1; text-align: center; padding: 12px;">+ Add Set</div>
+                                <div style="background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; flex: 1; text-align: center;">Next Exercise</div>
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <h4 style="margin: 0 0 5px 0; font-size: 12px;">🎯 Next Up</h4>
+                                <div style="background: #f3f4f6; padding: 8px; border-radius: 6px; font-size: 10px;">
+                                    Incline Dumbbell Press • 3 sets x 10-12 reps
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Progress</div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Workout</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screenshot 4: Progress Analytics -->
+            <div class="screenshot" id="screenshot4">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>Progress</h2>
+                                <div class="orange-btn">📤 Export</div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                                <div style="background: #ea580c; color: white; padding: 6px 12px; border-radius: 15px; font-size: 11px;">Overview</div>
+                                <div style="background: #f3f4f6; padding: 6px 12px; border-radius: 15px; font-size: 11px;">Strength</div>
+                                <div style="background: #f3f4f6; padding: 6px 12px; border-radius: 15px; font-size: 11px;">Body</div>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 style="margin: 0 0 10px 0; font-size: 12px;">📈 Workout Frequency</h4>
+                                <div class="chart-placeholder">
+                                    <div class="chart-line"></div>
+                                </div>
+                                <p style="margin: 5px 0 0 0; font-size: 10px; color: #6b7280;">5 workouts this week • +25% from last week</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 style="margin: 0 0 10px 0; font-size: 12px;">🏆 Personal Records</h4>
+                                <div class="stat-item">
+                                    <span style="font-size: 10px;">Bench Press</span>
+                                    <span class="stat-value" style="font-size: 10px;">185 lbs</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span style="font-size: 10px;">Squat</span>
+                                    <span class="stat-value" style="font-size: 10px;">225 lbs</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span style="font-size: 10px;">Deadlift</span>
+                                    <span class="stat-value" style="font-size: 10px;">275 lbs</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 style="margin: 0 0 10px 0; font-size: 12px;">💪 Strength Progress</h4>
+                                <div style="margin-bottom: 8px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                        <span>Bench Press Goal</span>
+                                        <span>155/200 lbs</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 77%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+                                        <span>Weekly Workouts</span>
+                                        <span>5/6 workouts</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 83%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Progress</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Goals</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screenshot 5: Goals & Achievements -->
+            <div class="screenshot" id="screenshot5">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>Goals</h2>
+                                <div class="orange-btn">+ New Goal</div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <div style="background: linear-gradient(135deg, #ea580c, #f97316); color: white; padding: 8px 12px; border-radius: 8px; flex: 1; text-align: center; font-size: 10px;">💪 Strength Goals</div>
+                                <div style="background: linear-gradient(135deg, #10b981, #34d399); color: white; padding: 8px 12px; border-radius: 8px; flex: 1; text-align: center; font-size: 10px;">📅 Habit Goals</div>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <h4 style="margin: 0; font-size: 12px;">🎯 Bench Press 200 lbs</h4>
+                                    <span style="background: #fef3cd; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 9px;">In Progress</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 77%"></div>
+                                </div>
+                                <p style="margin: 5px 0 0 0; font-size: 10px; color: #6b7280;">155/200 lbs • 77% complete • Target: Dec 31</p>
+                            </div>
+                            
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <h4 style="margin: 0; font-size: 12px;">📅 Workout 5x per week</h4>
+                                    <span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 9px;">On Track</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 83%"></div>
+                                </div>
+                                <p style="margin: 5px 0 0 0; font-size: 10px; color: #6b7280;">5/6 this week • Streak: 3 weeks</p>
+                            </div>
+                            
+                            <div class="card">
+                                <h4 style="margin: 0 0 10px 0; font-size: 12px;">🏆 Recent Achievements</h4>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <div style="background: #fef3cd; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 9px; display: flex; align-items: center; gap: 2px;">
+                                        🔥 7-day streak
+                                    </div>
+                                    <div style="background: #ddd6fe; color: #5b21b6; padding: 4px 8px; border-radius: 6px; font-size: 9px; display: flex; align-items: center; gap: 2px;">
+                                        💪 50 workouts
+                                    </div>
+                                    <div style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 6px; font-size: 9px; display: flex; align-items: center; gap: 2px;">
+                                        📈 New PR
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-highlight">
+                                <h3>🎯 Set Your Next Goal</h3>
+                                <p>What fitness milestone do you want to achieve?</p>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Progress</div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Goals</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screenshot 6: Exercise Database -->
+            <div class="screenshot" id="screenshot6">
+                <div class="phone-frame">
+                    <div class="screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>100%</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="header">
+                                <h2>Exercise Database</h2>
+                                <div class="orange-btn">🔍 Search</div>
+                            </div>
+                            
+                            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: #6b7280;">
+                                🔍 Search 100+ exercises...
+                            </div>
+                            
+                            <div style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
+                                <div style="background: #ea580c; color: white; padding: 4px 8px; border-radius: 15px; font-size: 10px;">All</div>
+                                <div style="background: #f3f4f6; padding: 4px 8px; border-radius: 15px; font-size: 10px;">Chest</div>
+                                <div style="background: #f3f4f6; padding: 4px 8px; border-radius: 15px; font-size: 10px;">Back</div>
+                                <div style="background: #f3f4f6; padding: 4px 8px; border-radius: 15px; font-size: 10px;">Legs</div>
+                            </div>
+                            
+                            <div class="exercise-list">
+                                <div class="exercise-item">
+                                    <div>
+                                        <div style="font-weight: 600;">💪 Bench Press</div>
+                                        <div style="color: #6b7280;">Chest • Compound</div>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 9px; padding: 4px 8px;">+ Add</div>
+                                </div>
+                                <div class="exercise-item">
+                                    <div>
+                                        <div style="font-weight: 600;">🔥 Incline Dumbbell Press</div>
+                                        <div style="color: #6b7280;">Chest • Compound</div>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 9px; padding: 4px 8px;">+ Add</div>
+                                </div>
+                                <div class="exercise-item">
+                                    <div>
+                                        <div style="font-weight: 600;">⬆️ Pull-ups</div>
+                                        <div style="color: #6b7280;">Back • Compound</div>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 9px; padding: 4px 8px;">+ Add</div>
+                                </div>
+                                <div class="exercise-item">
+                                    <div>
+                                        <div style="font-weight: 600;">🏋️ Barbell Rows</div>
+                                        <div style="color: #6b7280;">Back • Compound</div>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 9px; padding: 4px 8px;">+ Add</div>
+                                </div>
+                                <div class="exercise-item">
+                                    <div>
+                                        <div style="font-weight: 600;">🦵 Squats</div>
+                                        <div style="color: #6b7280;">Legs • Compound</div>
+                                    </div>
+                                    <div class="orange-btn" style="font-size: 9px; padding: 4px 8px;">+ Add</div>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-highlight" style="margin-top: 15px;">
+                                <h3>💡 Pro Tip</h3>
+                                <p>Create custom workouts by combining any exercises from our 100+ database</p>
+                            </div>
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Templates</div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon"></div>
+                                <div>Exercises</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon"></div>
+                                <div>Goals</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <h2>📱 Download Individual Screenshots</h2>
+            <p>Right-click on each screenshot above and select "Save image as..." or use the buttons below:</p>
+            
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px;">
+                <button class="download-btn" onclick="downloadScreenshot('screenshot1', 'fittracker-home-dashboard.png')">
+                    📱 Download Home Dashboard
+                </button>
+                <button class="download-btn" onclick="downloadScreenshot('screenshot2', 'fittracker-workout-templates.png')">
+                    🏋️ Download Workout Templates
+                </button>
+                <button class="download-btn" onclick="downloadScreenshot('screenshot3', 'fittracker-workout-progress.png')">
+                    ⏱️ Download Workout in Progress
+                </button>
+                <button class="download-btn" onclick="downloadScreenshot('screenshot4', 'fittracker-progress-analytics.png')">
+                    📊 Download Progress Analytics
+                </button>
+                <button class="download-btn" onclick="downloadScreenshot('screenshot5', 'fittracker-goals-achievements.png')">
+                    🎯 Download Goals & Achievements
+                </button>
+                <button class="download-btn" onclick="downloadScreenshot('screenshot6', 'fittracker-exercise-database.png')">
+                    💪 Download Exercise Database
+                </button>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-top: 30px; text-align: left;">
+                <h3>📝 Play Store Screenshot Requirements:</h3>
+                <ul>
+                    <li>✅ <strong>Format:</strong> PNG or JPEG</li>
+                    <li>✅ <strong>Aspect Ratio:</strong> 16:9 or 9:16 (these are 9:16)</li>
+                    <li>✅ <strong>Minimum Resolution:</strong> 1080x1920 pixels</li>
+                    <li>✅ <strong>Maximum File Size:</strong> 8MB each</li>
+                    <li>✅ <strong>Quantity:</strong> 2-8 screenshots (we have 6)</li>
+                    <li>✅ <strong>Content:</strong> Show key app features</li>
+                </ul>
+                
+                <h3>🎯 These Screenshots Show:</h3>
+                <ol>
+                    <li><strong>Home Dashboard:</strong> Welcome screen, stats, quick actions</li>
+                    <li><strong>Workout Templates:</strong> 8 professional templates, category filtering</li>
+                    <li><strong>Active Workout:</strong> Real-time tracking, set logging, timer</li>
+                    <li><strong>Progress Analytics:</strong> Charts, personal records, strength tracking</li>
+                    <li><strong>Goals & Achievements:</strong> Goal setting, progress bars, badges</li>
+                    <li><strong>Exercise Database:</strong> 100+ exercises, search, categories</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function downloadScreenshot(elementId, filename) {
+            const element = document.getElementById(elementId);
+            
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match Play Store requirements (9:16 aspect ratio)
+            canvas.width = 1080;
+            canvas.height = 1920;
+            
+            // Convert element to image using html2canvas approach
+            // Note: This is a simplified version - for production use html2canvas library
+            
+            // For now, we'll use a different approach
+            html2canvas(element, {
+                width: 1080,
+                height: 1920,
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(function(canvas) {
+                // Create download link
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+        
+        // Load html2canvas library
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        document.head.appendChild(script);
+        
+        // Auto-scroll animation for demo
+        setInterval(() => {
+            const charts = document.querySelectorAll('.chart-line');
+            charts.forEach(chart => {
+                chart.style.animation = 'none';
+                setTimeout(() => {
+                    chart.style.animation = 'drawLine 2s ease-in-out infinite alternate';
+                }, 10);
+            });
+        }, 4000);
+    </script>
+</body>
+</html>

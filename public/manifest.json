@@ -1,0 +1,104 @@
+{
+  "name": "FitTracker - Workout Logger",
+  "short_name": "FitTracker",
+  "description": "Track your workouts offline with beautiful UI and progress analytics",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#ea580c",
+  "categories": ["health", "fitness", "lifestyle", "sports"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "version": "2.0.0",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/fittracker-app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Workout",
+      "short_name": "Log",
+      "description": "Quickly start logging a new workout",
+      "url": "/log-workout",
+      "icons": [
+        {
+          "src": "/plus-icon.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Progress",
+      "short_name": "Progress",
+      "description": "Check your fitness progress and stats",
+      "url": "/progress",
+      "icons": [
+        {
+          "src": "/fittracker-badge-icon.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "share_target": {
+    "action": "/log-workout",
+    "method": "GET",
+    "params": {
+      "title": "workout",
+      "text": "exercise",
+      "url": "source"
+    }
+  }
+}

@@ -1,0 +1,354 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>FitTracker Icon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        button { padding: 10px 20px; margin: 5px; background: #ea580c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .icon-preview { display: inline-block; margin: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>FitTracker Icon & Splash Generator</h1>
+    <p>This will generate icons with the proper orange theme color (#ea580c)</p>
+    
+    <div class="icon-preview">
+        <h3>App Icon (512x512)</h3>
+        <canvas id="appIcon" width="512" height="512"></canvas>
+        <br>
+        <button onclick="downloadIcon('appIcon', 'fittracker-app-icon-512.png')">Download App Icon</button>
+    </div>
+    
+    <div class="icon-preview">
+        <h3>Splash Screen (1080x1920)</h3>
+        <canvas id="splashScreen" width="540" height="960" style="width: 270px; height: 480px;"></canvas>
+        <br>
+        <button onclick="downloadIcon('splashScreen', 'splash.png')">Download Splash Screen</button>
+    </div>
+
+    <script>
+        function drawAppIcon() {
+            const canvas = document.getElementById('appIcon');
+            const ctx = canvas.getContext('2d');
+            
+            // Black background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Orange dumbbell (simple design like Lucide React)
+            ctx.fillStyle = '#ea580c';
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 24;
+            ctx.lineCap = 'round';
+            
+            // Left weight
+            ctx.beginPath();
+            ctx.moveTo(96, 200);
+            ctx.lineTo(96, 312);
+            ctx.stroke();
+            
+            // Right weight  
+            ctx.beginPath();
+            ctx.moveTo(416, 200);
+            ctx.lineTo(416, 312);
+            ctx.stroke();
+            
+            // Connecting bar
+            ctx.beginPath();
+            ctx.moveTo(96, 256);
+            ctx.lineTo(416, 256);
+            ctx.stroke();
+        }
+        
+        function drawSplashScreen() {
+            const canvas = document.getElementById('splashScreen');
+            const ctx = canvas.getContext('2d');
+            
+            // Orange background for splash
+            ctx.fillStyle = '#ea580c';
+            ctx.fillRect(0, 0, 540, 960);
+            
+            // Center white dumbbell icon (simple design)
+            const centerX = 270;
+            const centerY = 400;
+            
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 20;
+            ctx.lineCap = 'round';
+            
+            // Left weight
+            ctx.beginPath();
+            ctx.moveTo(centerX - 120, centerY - 60);
+            ctx.lineTo(centerX - 120, centerY + 60);
+            ctx.stroke();
+            
+            // Right weight  
+            ctx.beginPath();
+            ctx.moveTo(centerX + 120, centerY - 60);
+            ctx.lineTo(centerX + 120, centerY + 60);
+            ctx.stroke();
+            
+            // Connecting bar
+            ctx.beginPath();
+            ctx.moveTo(centerX - 120, centerY);
+            ctx.lineTo(centerX + 120, centerY);
+            ctx.stroke();
+            
+            // App name
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('FitTracker', centerX, centerY + 120);
+        }
+        
+        // Draw both canvases when page loads
+        window.onload = function() {
+            drawAppIcon();
+            drawSplashScreen();
+        };
+        
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Polyfill for roundRect if not available
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+            };
+        }
+        
+        // Draw icons when page loads
+        window.onload = function() {
+            drawAppIcon();
+            drawSplashScreen();
+        };
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness App - Logo & Splash Screen Downloads</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --orange-primary: #ea580c;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Fitness App Assets</h1>
+            <p class="text-gray-600">Download your logo and splash screen</p>
+        </header>
+
+        <!-- Logo Section -->
+        <section class="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">App Logo</h2>
+            
+            <!-- Logo Preview -->
+            <div class="flex justify-center mb-8">
+                <!-- Updated background to dark to match the provided image -->
+                <div class="bg-gray-900 p-8 rounded-lg">
+                    <!-- Simplified logo to match exact design from image - just orange dumbbell tilted 45 degrees -->
+                    <svg id="logo-svg" width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Background -->
+                        <rect width="200" height="200" fill="#1f2937"/>
+                        
+                        <!-- Dumbbell - Tilted 45 degrees, centered -->
+                        <g transform="rotate(45 100 100)">
+                            <!-- Left Weight (circular) -->
+                            <circle cx="70" cy="100" r="18" fill="#ea580c"/>
+                            
+                            <!-- Bar -->
+                            <rect x="88" y="95" width="24" height="10" rx="5" fill="#ea580c"/>
+                            
+                            <!-- Right Weight (circular) -->
+                            <circle cx="130" cy="100" r="18" fill="#ea580c"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Logo Download Options -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="downloadLogo('svg')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download SVG
+                </button>
+                <button onclick="downloadLogo('png')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download PNG
+                </button>
+                <button onclick="downloadLogo('jpg')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download JPG
+                </button>
+            </div>
+        </section>
+
+        <!-- Splash Screen Section -->
+        <section class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Splash Screen</h2>
+            
+            <!-- Splash Screen Preview -->
+            <div class="flex justify-center mb-8">
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <svg id="splash-svg" width="300" height="500" viewBox="0 0 300 500" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Background Gradient -->
+                        <defs>
+                            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge> 
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        
+                        <!-- Updated background to dark gradient to match logo theme -->
+                        <rect width="300" height="500" fill="url(#bgGradient)"/>
+                        
+                        <!-- Simplified main logo to match the exact dumbbell design -->
+                        <g transform="translate(150, 250)">
+                            <!-- Glow Effect -->
+                            <circle cx="0" cy="0" r="60" fill="#ea580c" opacity="0.2" filter="url(#glow)"/>
+                            
+                            <!-- Dumbbell - Tilted 45 degrees, matching logo design -->
+                            <g transform="rotate(45)">
+                                <!-- Left Weight (circular) -->
+                                <circle cx="-30" cy="0" r="18" fill="#ea580c"/>
+                                
+                                <!-- Bar -->
+                                <rect x="-12" y="-5" width="24" height="10" rx="5" fill="#ea580c"/>
+                                
+                                <!-- Right Weight (circular) -->
+                                <circle cx="30" cy="0" r="18" fill="#ea580c"/>
+                            </g>
+                        </g>
+                        
+                        <!-- Loading Animation Dots -->
+                        <g transform="translate(150, 420)">
+                            <circle cx="-20" cy="0" r="4" fill="#ea580c" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite" begin="0s"/>
+                            </circle>
+                            <circle cx="0" cy="0" r="4" fill="#ea580c" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+                            </circle>
+                            <circle cx="20" cy="0" r="4" fill="#ea580c" opacity="0.6">
+                                <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Splash Screen Download Options -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="downloadSplash('svg')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download SVG
+                </button>
+                <button onclick="downloadSplash('png')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download PNG
+                </button>
+                <button onclick="downloadSplash('jpg')" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Download JPG
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-600">
+            <p>© 2024 FitPro App. All assets are ready for your fitness application.</p>
+        </footer>
+    </div>
+
+    <script>
+        function downloadLogo(format) {
+            const svg = document.getElementById('logo-svg');
+            downloadAsset(svg, `fitpro-logo.${format}`, format, 200, 200);
+        }
+
+        function downloadSplash(format) {
+            const svg = document.getElementById('splash-svg');
+            downloadAsset(svg, `fitpro-splash.${format}`, format, 300, 500);
+        }
+
+        function downloadAsset(svgElement, filename, format, width, height) {
+            if (format === 'svg') {
+                // Download as SVG
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
+                downloadFile(svgUrl, filename);
+            } else {
+                // Convert to PNG or JPG
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                // Set canvas size for high resolution
+                canvas.width = width * 2;
+                canvas.height = height * 2;
+                
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                img.onload = function() {
+                    if (format === 'jpg') {
+                        // Fill with white background for JPG
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        downloadFile(url, filename);
+                        URL.revokeObjectURL(url);
+                    }, format === 'jpg' ? 'image/jpeg' : 'image/png', 0.9);
+                    
+                    URL.revokeObjectURL(url);
+                };
+                
+                img.src = url;
+            }
+        }
+
+        function downloadFile(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
+
+

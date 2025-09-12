@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Black background (like your image) -->
+  <rect width="512" height="512" fill="#000000"/>
+  
+  <!-- Orange dumbbell icon matching your image -->
+  <g fill="#ea580c" stroke="#ea580c" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Center bar -->
+    <line x1="180" y1="256" x2="332" y2="256"/>
+    
+    <!-- Left weight plates -->
+    <!-- Outer plate -->
+    <rect x="100" y="206" width="30" height="100" rx="8" fill="#ea580c"/>
+    <!-- Inner plate -->
+    <rect x="110" y="216" width="30" height="80" rx="6" fill="#ea580c"/>
+    
+    <!-- Right weight plates -->
+    <!-- Outer plate -->
+    <rect x="382" y="206" width="30" height="100" rx="8" fill="#ea580c"/>
+    <!-- Inner plate -->
+    <rect x="372" y="216" width="30" height="80" rx="6" fill="#ea580c"/>
+    
+    <!-- Center grip area -->
+    <rect x="230" y="240" width="52" height="32" rx="16" fill="#ea580c"/>
+  </g>
+</svg>

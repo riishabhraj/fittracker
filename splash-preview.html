@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FitTracker Splash Preview</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .preview-container {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .phone-frame {
+            width: 300px;
+            height: 600px;
+            background: #000;
+            border-radius: 25px;
+            padding: 10px;
+            margin: 20px auto;
+            position: relative;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .dumbbell {
+            position: relative;
+            transform: scale(1);
+            width: 60px;
+            height: 20px;
+        }
+        
+        .weight {
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 4px;
+        }
+        
+        .weight.left {
+            left: 0;
+        }
+        
+        .weight.right {
+            right: 0;
+        }
+        
+        .bar {
+            width: 60px;
+            height: 4px;
+            background: white;
+            border-radius: 2px;
+            position: absolute;
+            top: 8px;
+            left: 0;
+        }
+        
+        .grip {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            left: 26px;
+        }
+        
+        .app-name {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .tagline {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .ft-letters {
+            position: absolute;
+            bottom: 150px;
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 10px;
+            opacity: 0.3;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ea580c;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .comparison {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 30px;
+        }
+        
+        .before, .after {
+            text-align: center;
+        }
+        
+        .before h3 {
+            color: #dc2626;
+        }
+        
+        .after h3 {
+            color: #16a34a;
+        }
+        
+        .old-screen {
+            width: 150px;
+            height: 300px;
+            background: #f3f4f6;
+            border: 2px solid #d1d5db;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #6b7280;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎉 FitTracker New Splash Screen</h1>
+    <p class="description">Your app will now have a beautiful orange-themed splash screen matching your brand!</p>
+    
+    <div class="preview-container">
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="logo">
+                    <div class="dumbbell">
+                        <div class="weight left"></div>
+                        <div class="weight right"></div>
+                        <div class="bar"></div>
+                        <div class="grip"></div>
+                    </div>
+                </div>
+                <div class="app-name">FitTracker</div>
+                <div class="tagline">Your Workout Companion</div>
+                <div class="ft-letters">FT</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="comparison">
+        <div class="before">
+            <h3>❌ Before</h3>
+            <div class="old-screen">
+                TT
+                <br>
+                <small style="font-size: 12px;">Generic</small>
+            </div>
+            <p>Generic double T's<br>No brand identity</p>
+        </div>
+        
+        <div class="after">
+            <h3>✅ After</h3>
+            <div class="phone-frame" style="width: 150px; height: 300px; padding: 5px;">
+                <div class="screen" style="border-radius: 10px;">
+                    <div class="logo" style="width: 40px; height: 40px; margin-bottom: 10px;">
+                        <div class="dumbbell" style="transform: scale(0.5); margin-left: -15px; margin-top: 5px;">
+                            <div class="weight left"></div>
+                            <div class="weight right"></div>
+                            <div class="bar"></div>
+                            <div class="grip"></div>
+                        </div>
+                    </div>
+                    <div class="app-name" style="font-size: 16px; margin-bottom: 5px;">FitTracker</div>
+                    <div class="tagline" style="font-size: 8px;">Your Workout Companion</div>
+                </div>
+            </div>
+            <p>Orange branded theme<br>Professional look</p>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 10px; border-left: 4px solid #f59e0b;">
+        <h3 style="color: #92400e; margin-top: 0;">🔧 Quick Setup Instructions</h3>
+        <ol style="text-align: left; color: #92400e; max-width: 500px; margin: 0 auto;">
+            <li>Open <strong>icon-generator.html</strong> (already open in browser)</li>
+            <li>Click <strong>"Download Splash Screen"</strong> button</li>
+            <li>Run: <code>.\update-splash.ps1 "C:\path\to\downloaded\splash.png"</code></li>
+            <li>Build new APK in Android Studio</li>
+        </ol>
+        <p style="color: #92400e; margin-bottom: 0;"><strong>Result:</strong> Beautiful orange splash screen with FitTracker branding! 🎨</p>
+    </div>
+</body>
+</html>
