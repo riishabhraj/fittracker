@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, Calendar, Target, Award, Download } from "lucide-react"
+import { TrendingUp, Calendar, Target, Award, Download, Shield } from "lucide-react"
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
 import { StrengthProgressChart } from "@/components/strength-progress-chart"
 import { PersonalRecords } from "@/components/personal-records"
@@ -15,6 +15,7 @@ import { BackButton } from "@/components/back-button"
 import { exportWorkoutData } from "@/lib/workout-storage"
 import { exportGoalData } from "@/lib/goal-storage"
 import { toast } from "sonner"
+import Link from "next/link"
 
 export default function ProgressPage() {
   const handleExportData = () => {
@@ -127,6 +128,18 @@ export default function ProgressPage() {
             <AchievementBadges />
           </TabsContent>
         </Tabs>
+
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-border">
+          <div className="flex justify-center">
+            <Link href="/privacy-policy">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <Shield className="h-4 w-4 mr-2" />
+                Privacy Policy
+              </Button>
+            </Link>
+          </div>
+        </div>
       </main>
     </div>
   )

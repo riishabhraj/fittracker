@@ -2,13 +2,14 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Trophy, Calendar, TrendingUp, Target, Dumbbell } from "lucide-react"
+import { Plus, Trophy, Calendar, TrendingUp, Target, Dumbbell, Shield, Info } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import { CreateGoalDialog } from "@/components/create-goal-dialog"
 import { useEffect, useState } from "react"
 import { getWorkouts, getWorkoutStats } from "@/lib/workout-storage"
 import { getGoals, getActiveGoals, getCompletedGoals } from "@/lib/goal-storage"
+import Link from "next/link"
 
 interface Goal {
   id: string
@@ -274,6 +275,23 @@ export default function GoalsPage() {
             </Button>
           </CreateGoalDialog>
         </div>
+
+        {/* App Settings */}
+        <Card className="p-6 bg-card border-border mt-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">⚙️ App Settings</h3>
+          <div className="space-y-3">
+            <Link href="/privacy-policy" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Shield className="h-4 w-4 mr-2" />
+                Privacy Policy
+              </Button>
+            </Link>
+            <Button variant="outline" className="w-full justify-start">
+              <Info className="h-4 w-4 mr-2" />
+              About FitTracker v2.0.0
+            </Button>
+          </div>
+        </Card>
       </main>
     </div>
   )
