@@ -6,6 +6,7 @@ import { Plus, Trophy, Calendar, TrendingUp, Target, Dumbbell, Shield, Info } fr
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import { CreateGoalDialog } from "@/components/create-goal-dialog"
+import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { useEffect, useState } from "react"
 import { getWorkouts, getWorkoutStats } from "@/lib/workout-storage"
 import { getGoals, getActiveGoals, getCompletedGoals } from "@/lib/goal-storage"
@@ -179,6 +180,9 @@ export default function GoalsPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Active Workout Session Notification */}
+        <WorkoutSessionNotification />
+        
         {/* Active Goals */}
         {activeGoals.length > 0 ? (
           <div className="space-y-4">

@@ -6,6 +6,7 @@ import { WorkoutStats } from "@/components/workout-stats"
 import { WorkoutTemplates } from "@/components/workout-templates"
 import { WeeklyCalendar } from "@/components/weekly-calendar"
 import { RecentWorkouts } from "@/components/recent-workouts"
+import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { ClientInstallPrompts } from "@/components/client-install-prompts"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -64,6 +65,9 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Active Workout Session Notification */}
+        <WorkoutSessionNotification />
+
         {isNewUser && (
           // Welcome message for new users
           <div className="text-center space-y-4 py-8">

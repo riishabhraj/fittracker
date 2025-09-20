@@ -10,6 +10,7 @@ import { PersonalRecords } from "@/components/personal-records"
 import { BodyMeasurements } from "@/components/body-measurements"
 import { AchievementBadges } from "@/components/achievement-badges"
 import { ProgressOverview } from "@/components/progress-overview"
+import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import { exportWorkoutData } from "@/lib/workout-storage"
@@ -77,6 +78,9 @@ export default function ProgressPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
+        {/* Active Workout Session Notification */}
+        <WorkoutSessionNotification className="mb-6" />
+        
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-muted/10 p-1 h-auto rounded-lg border border-border">
             <TabsTrigger

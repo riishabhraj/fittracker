@@ -11,6 +11,12 @@ import { ExerciseSelector } from "@/components/exercise-selector"
 import { BackButton } from "@/components/back-button"
 import { templates } from "@/components/workout-templates"
 import { saveWorkout, Workout } from "@/lib/workout-storage"
+import { 
+  saveWorkoutSession, 
+  getWorkoutSession, 
+  clearWorkoutSession, 
+  useWorkoutSessionAutoSave 
+} from "@/lib/workout-session-storage"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
@@ -29,6 +35,7 @@ function LogWorkoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const templateId = searchParams.get('template')
+  const { saveSession } = useWorkoutSessionAutoSave()
   
   const [workoutName, setWorkoutName] = useState("New Workout")
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -36,15 +43,34 @@ function LogWorkoutContent() {
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null)
   const [workoutDuration, setWorkoutDuration] = useState(0)
   const [showExerciseSelector, setShowExerciseSelector] = useState(false)
+  const [sessionLoaded, setSessionLoaded] = useState(false)
 
-  // Load template exercises if template ID is provided
+  // Load existing workout session or template on mount
   useEffect(() => {
-    if (templateId) {
+    const existingSession = getWorkoutSession()
+    
+    if (existingSession && !templateId) {
+      // Restore existing session
+      setWorkoutName(existingSession.workoutName)
+      setExercises(existingSession.exercises)
+      setIsWorkoutActive(existingSession.isWorkoutActive)
+      setWorkoutDuration(existingSession.workoutDuration)
+      
+      if (existingSession.workoutStartTime) {
+        setWorkoutStartTime(new Date(existingSession.workoutStartTime))
+      }
+      
+      toast.success("🔄 Resumed your workout session!")
+      setSessionLoaded(true)
+    } else if (templateId) {
+      // Load template (this will override existing session)
       const template = templates.find(t => t.id === templateId)
       if (template) {
+        // Clear existing session when loading a new template
+        clearWorkoutSession()
+        
         setWorkoutName(template.name)
         
-        // Convert template exercises to Exercise objects
         const templateExercises: Exercise[] = template.exerciseList.map((exercise, index) => ({
           id: `template-${index}-${Date.now()}`,
           name: exercise.name,
@@ -57,11 +83,35 @@ function LogWorkoutContent() {
         }))
         
         setExercises(templateExercises)
-        setIsWorkoutActive(true) // Auto-start workout when loading template
-        toast.success(`Loaded ${template.name} template with ${template.exerciseList.length} exercises!`)
+        setIsWorkoutActive(true)
+        toast.success(`📋 Loaded ${template.name} template with ${template.exerciseList.length} exercises!`)
+        setSessionLoaded(true)
       }
+    } else {
+      setSessionLoaded(true)
     }
   }, [templateId])
+
+  // Auto-save session whenever state changes
+  useEffect(() => {
+    if (!sessionLoaded) return // Don't save until initial load is complete
+    
+    const sessionData = {
+      workoutName,
+      exercises,
+      isWorkoutActive,
+      workoutStartTime: workoutStartTime?.toISOString() || null,
+      workoutDuration,
+      templateId
+    }
+    
+    // Debounce auto-save to avoid too frequent saves
+    const timeoutId = setTimeout(() => {
+      saveSession(sessionData)
+    }, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [workoutName, exercises, isWorkoutActive, workoutStartTime, workoutDuration, templateId, saveSession, sessionLoaded])
 
   // Start workout timer when first exercise is added or timer is manually started
   useEffect(() => {
@@ -155,7 +205,11 @@ function LogWorkoutContent() {
       }
 
       saveWorkout(workout)
-      toast.success("Workout saved successfully!")
+      
+      // Clear the workout session after successful save
+      clearWorkoutSession()
+      
+      toast.success("✅ Workout saved successfully!")
       
       // Navigate back to dashboard
       router.push("/")
@@ -169,13 +223,16 @@ function LogWorkoutContent() {
     if (exercises.length > 0) {
       const hasData = exercises.some(ex => ex.sets.some(set => set.reps > 0 || set.weight > 0))
       if (hasData) {
-        if (confirm("Are you sure you want to cancel this workout? All progress will be lost.")) {
+        if (confirm("⚠️ Are you sure you want to cancel this workout? All progress will be lost.")) {
+          clearWorkoutSession()
           router.push("/")
         }
       } else {
+        clearWorkoutSession()
         router.push("/")
       }
     } else {
+      clearWorkoutSession()
       router.push("/")
     }
   }

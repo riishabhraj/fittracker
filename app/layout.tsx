@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Roboto } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClientBottomNavigation } from "@/components/client-bottom-navigation"
+import { SessionCleanup } from "@/components/session-cleanup"
 import { Toaster } from "sonner"
 import "./globals.css"
 
@@ -104,6 +105,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SessionCleanup />
           <div className="pb-16">
             {children}
           </div>
