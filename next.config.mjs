@@ -1,30 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
     unoptimized: true,
   },
-  // experimental: {
-  //   optimizePackageImports: ['lucide-react'],
-  // },
-  webpack: (config) => {
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    }
-    
-    // Ensure all components are included in build
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    }
-    
-    return config
-  },
+  turbopack: {},
   // PWA headers
   async headers() {
     return [
