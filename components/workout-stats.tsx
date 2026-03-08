@@ -1,112 +1,96 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Calendar, TrendingUp, Target, Flame, Clock, Dumbbell } from "lucide-react"
+import { Flame, Calendar, TrendingUp, Clock, Target, Zap } from "lucide-react"
 import { getWorkoutStats } from "@/lib/workout-storage"
 import { useEffect, useState } from "react"
-
-interface StatCardProps {
-  icon: React.ElementType
-  label: string
-  value: string
-  progress?: number
-  trend?: "up" | "down" | "neutral"
-}
-
-function StatCard({ icon: Icon, label, value, progress, trend }: StatCardProps) {
-  return (
-    <Card className="p-4 bg-card border-border">
-      <div className="flex items-center justify-between mb-2">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        {trend && (
-          <div
-            className={`text-xs ${trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-muted-foreground"}`}
-          >
-            {trend === "up" ? "↗" : trend === "down" ? "↘" : "→"}
-          </div>
-        )}
-      </div>
-      <div>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-lg font-semibold text-foreground">{value}</p>
-        {progress !== undefined && <Progress value={progress} className="mt-2 h-1" />}
-      </div>
-    </Card>
-  )
-}
 
 export function WorkoutStats() {
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     weeklyWorkouts: 0,
-    totalSets: 0,
-    totalReps: 0,
     totalWeight: 0,
     totalHours: 0,
     currentStreak: 0,
     weeklyGoal: 4,
-    avgDuration: 0
+    avgDuration: 0,
   })
 
-  const updateStats = () => {
-    setStats(getWorkoutStats())
-  }
-
   useEffect(() => {
-    updateStats()
-    
-    // Listen for storage changes
-    const handleStorageChange = () => updateStats()
-    const handleWorkoutChange = () => updateStats()
-    
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('workoutDataChanged', handleWorkoutChange)
-    
+    const update = async () => {
+      try { setStats(await getWorkoutStats()) } catch { /* keep previous state */ }
+    }
+    update()
+    window.addEventListener("workoutDataChanged", update)
+    window.addEventListener("storage", update)
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('workoutDataChanged', handleWorkoutChange)
+      window.removeEventListener("workoutDataChanged", update)
+      window.removeEventListener("storage", update)
     }
   }, [])
 
-  const weeklyProgress = stats.weeklyGoal > 0 ? Math.min((stats.weeklyWorkouts / stats.weeklyGoal) * 100, 100) : 0
+  const weeklyPct = stats.weeklyGoal > 0
+    ? Math.min((stats.weeklyWorkouts / stats.weeklyGoal) * 100, 100)
+    : 0
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <StatCard 
-        icon={Calendar} 
-        label="This Week" 
-        value={`${stats.weeklyWorkouts} workout${stats.weeklyWorkouts !== 1 ? 's' : ''}`} 
-        progress={weeklyProgress} 
-      />
-      <StatCard 
-        icon={Flame} 
-        label="Streak" 
-        value={`${stats.currentStreak} day${stats.currentStreak !== 1 ? 's' : ''}`} 
-      />
-      <StatCard 
-        icon={Target} 
-        label="Weekly Goal" 
-        value={`${Math.round(weeklyProgress)}%`} 
-        progress={weeklyProgress} 
-      />
-      <StatCard 
-        icon={Clock} 
-        label="Avg Duration" 
-        value={`${stats.avgDuration} min`} 
-      />
-      <StatCard 
-        icon={Dumbbell} 
-        label="Total Weight" 
-        value={`${stats.totalWeight.toLocaleString()} lbs`} 
-      />
-      <StatCard 
-        icon={TrendingUp} 
-        label="Total Hours" 
-        value={`${stats.totalHours} hrs`} 
-      />
+    <div className="space-y-3">
+      {/* Hero row: streak + weekly goal */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl shrink-0" style={{ background: "rgba(249,115,22,0.15)" }}>
+            <Flame className="h-5 w-5 text-orange-500" />
+          </div>
+          <div>
+            <p className="text-3xl font-bold text-foreground leading-none">{stats.currentStreak}</p>
+            <p className="text-xs text-muted-foreground mt-1">Day streak 🔥</p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-card border border-border p-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-1.5">
+              <Target className="h-3.5 w-3.5 text-primary" />
+              <p className="text-xs text-muted-foreground">Weekly goal</p>
+            </div>
+            <p className="text-sm font-bold text-foreground">{stats.weeklyWorkouts}/{stats.weeklyGoal}</p>
+          </div>
+          <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${weeklyPct}%`, backgroundColor: "hsl(80 100% 50%)" }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            {weeklyPct >= 100 ? "Goal crushed! 💪" : `${Math.round(weeklyPct)}% complete`}
+          </p>
+        </div>
+      </div>
+
+      {/* Mini 4-stat row */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { icon: Calendar,   value: stats.totalWorkouts,  label: "Total",    color: "#3b82f6",          bg: "rgba(59,130,246,0.1)" },
+          { icon: Clock,      value: `${stats.avgDuration}m`, label: "Avg",   color: "#a855f7",          bg: "rgba(168,85,247,0.1)" },
+          { icon: TrendingUp, value: stats.totalHours,     label: "Hours",    color: "hsl(80 100% 50%)", bg: "rgba(170,255,0,0.1)" },
+          {
+            icon: Zap,
+            value: stats.totalWeight > 9999
+              ? `${(stats.totalWeight / 1000).toFixed(1)}k`
+              : stats.totalWeight,
+            label: "lbs",
+            color: "#f59e0b",
+            bg: "rgba(245,158,11,0.1)",
+          },
+        ].map(({ icon: Icon, value, label, color, bg }) => (
+          <div key={label} className="rounded-2xl bg-card border border-border p-3 text-center">
+            <div className="p-1.5 rounded-lg w-fit mx-auto mb-1.5" style={{ background: bg }}>
+              <Icon className="h-3.5 w-3.5" style={{ color }} />
+            </div>
+            <p className="text-base font-bold text-foreground leading-none">{value}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

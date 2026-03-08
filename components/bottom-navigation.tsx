@@ -1,86 +1,105 @@
 "use client"
 
-import { Calendar, Plus, TrendingUp, Target } from "lucide-react"
+import { Home, TrendingUp, Target, History, Plus } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+
+const NAV_ITEMS = [
+  { icon: Home,       label: "Home",     href: "/" },
+  { icon: History,    label: "Workouts", href: "/workouts" },
+  { icon: TrendingUp, label: "Progress", href: "/progress" },
+  { icon: Target,     label: "Goals",    href: "/goals" },
+]
 
 export function BottomNavigation() {
   const pathname = usePathname()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
-  // Ensure component is mounted to avoid hydration issues
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const navigationItems = [
-    { icon: Calendar, label: "Home", href: "/" },
-    { icon: Plus, label: "Log", href: "/log-workout" },
-    { icon: TrendingUp, label: "Progress", href: "/progress" },
-    { icon: Target, label: "Goals", href: "/goals" },
-  ]
-
-  const handleNavigation = (href: string) => {
-    router.push(href)
-  }
+  useEffect(() => { setMounted(true) }, [])
 
   const isActive = (href: string) => {
     if (!mounted) return false
-    
-    // Normalize paths by removing trailing slashes
-    const normalizedPathname = pathname.replace(/\/$/, '') || '/'
-    const normalizedHref = href.replace(/\/$/, '') || '/'
-    
-    // Exact match for home page
-    if (normalizedHref === '/') {
-      return normalizedPathname === '/'
-    }
-    
-    // For other pages, check if pathname starts with href
-    return normalizedPathname === normalizedHref || normalizedPathname.startsWith(normalizedHref + '/')
+    const p = pathname.replace(/\/$/, "") || "/"
+    const h = href.replace(/\/$/, "") || "/"
+    if (h === "/") return p === "/"
+    return p === h || p.startsWith(h + "/")
   }
 
-  // Show skeleton while mounting to prevent flash
   if (!mounted) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40 shadow-lg">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-around py-2">
-            {navigationItems.map((_, index) => (
-              <div key={index} className="flex flex-col items-center py-2 px-3">
-                <div className="h-5 w-5 bg-muted-foreground/20 rounded animate-pulse" />
-                <div className="h-3 w-8 bg-muted-foreground/20 rounded mt-1 animate-pulse" />
-              </div>
-            ))}
-          </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border">
+        <div className="flex items-center justify-around px-2 pt-3 pb-6">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <div className="h-5 w-5 rounded bg-muted/20 animate-pulse" />
+              <div className="h-2 w-8 rounded bg-muted/20 animate-pulse" />
+            </div>
+          ))}
         </div>
       </nav>
     )
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40 shadow-lg">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-around py-2">
-          {navigationItems.map((item, index) => {
-            const active = isActive(item.href)
-            return (
-              <button
-                key={index}
-                onClick={() => handleNavigation(item.href)}
-                className={`flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 ${
-                  active
-                    ? "text-primary bg-primary/10 scale-105"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/10 active:scale-95"
-                }`}
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="text-xs mt-1">{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur border-t border-border">
+      <div className="flex items-end justify-around px-2 pt-3 pb-6">
+        {/* Left two nav items */}
+        {NAV_ITEMS.slice(0, 2).map((item) => {
+          const active = isActive(item.href)
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              className="flex flex-col items-center gap-1 min-w-[52px] transition-all duration-200"
+            >
+              <item.icon
+                className={`h-5 w-5 transition-colors duration-200 ${active ? "text-primary" : "text-muted-foreground"}`}
+                strokeWidth={active ? 2.5 : 1.8}
+              />
+              <span className={`text-[10px] font-medium transition-colors duration-200 ${active ? "text-primary" : "text-muted-foreground"}`}>
+                {item.label}
+              </span>
+              <span className={`h-1 w-1 rounded-full transition-all duration-200 ${active ? "bg-primary" : "bg-transparent"}`} />
+            </button>
+          )
+        })}
+
+        {/* Center FAB — Log Workout */}
+        <button
+          onClick={() => router.push("/log-workout")}
+          className="flex flex-col items-center -mt-5"
+        >
+          <div
+            className="h-14 w-14 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 transition-transform duration-200 active:scale-95"
+            style={{ backgroundColor: "hsl(80 100% 50%)" }}
+          >
+            <Plus className="h-7 w-7" style={{ color: "hsl(0 0% 6%)" }} strokeWidth={2.5} />
+          </div>
+          <span className="text-[10px] font-medium text-muted-foreground mt-1">Log</span>
+          <span className="h-1 w-1 rounded-full bg-transparent" />
+        </button>
+
+        {/* Right two nav items */}
+        {NAV_ITEMS.slice(2).map((item) => {
+          const active = isActive(item.href)
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              className="flex flex-col items-center gap-1 min-w-[52px] transition-all duration-200"
+            >
+              <item.icon
+                className={`h-5 w-5 transition-colors duration-200 ${active ? "text-primary" : "text-muted-foreground"}`}
+                strokeWidth={active ? 2.5 : 1.8}
+              />
+              <span className={`text-[10px] font-medium transition-colors duration-200 ${active ? "text-primary" : "text-muted-foreground"}`}>
+                {item.label}
+              </span>
+              <span className={`h-1 w-1 rounded-full transition-all duration-200 ${active ? "bg-primary" : "bg-transparent"}`} />
+            </button>
+          )
+        })}
       </div>
     </nav>
   )

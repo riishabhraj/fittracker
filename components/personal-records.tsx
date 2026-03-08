@@ -23,9 +23,9 @@ export function PersonalRecords({ showAll = false }: PersonalRecordsProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const updatePersonalRecords = () => {
-      const records = getPersonalRecords()
-      const workouts = getWorkouts()
+    const updatePersonalRecords = async () => {
+      const records = await getPersonalRecords()
+      const workouts = await getWorkouts()
       
       // Convert records object to array and sort by date (most recent first)
       const recordsArray = Object.entries(records).map(([exercise, record]: [string, { weight: number; reps: number; date: string }]) => ({
@@ -48,14 +48,15 @@ export function PersonalRecords({ showAll = false }: PersonalRecordsProps) {
             if (exercise.name === record.exercise) {
               exercise.sets.forEach((set: any) => {
                 if (set.completed) {
+                  // Only consider sets that are strictly below the current PR
                   if (
-                    !previousBest ||
                     set.weight < record.weight ||
                     (set.weight === record.weight && set.reps < record.reps)
                   ) {
                     if (
-                      set.weight > (previousBest?.weight ?? 0) ||
-                      (set.weight === (previousBest?.weight ?? 0) && set.reps > (previousBest?.reps ?? 0))
+                      !previousBest ||
+                      set.weight > previousBest.weight ||
+                      (set.weight === previousBest.weight && set.reps > previousBest.reps)
                     ) {
                       previousBest = { weight: set.weight, reps: set.reps }
                     }

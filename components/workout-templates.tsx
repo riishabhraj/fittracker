@@ -169,6 +169,45 @@ const templates: WorkoutTemplate[] = [
       { name: "Push-ups", category: "Chest", sets: 2, reps: "5-10" },
       { name: "Mountain Climbers", category: "Core", sets: 2, reps: "20 sec" }
     ]
+  },
+  {
+    id: "9",
+    name: "Pull Day",
+    duration: "50 min",
+    exercises: 8,
+    difficulty: "Intermediate",
+    icon: Dumbbell,
+    color: "bg-cyan-500/10 text-cyan-500",
+    exerciseList: [
+      { name: "Barbell Rows", category: "Back", sets: 4, reps: "6-8" },
+      { name: "Pull-ups", category: "Back", sets: 4, reps: "6-8" },
+      { name: "Seated Cable Rows", category: "Back", sets: 3, reps: "10-12" },
+      { name: "Face Pulls", category: "Shoulders", sets: 3, reps: "12-15" },
+      { name: "Single-Arm Dumbbell Rows", category: "Back", sets: 3, reps: "10-12" },
+      { name: "Barbell Curls", category: "Arms", sets: 3, reps: "8-10" },
+      { name: "Hammer Curls", category: "Arms", sets: 3, reps: "10-12" },
+      { name: "Incline Dumbbell Curls", category: "Arms", sets: 3, reps: "12-15" }
+    ]
+  },
+  {
+    id: "10",
+    name: "Legs Day",
+    duration: "55 min",
+    exercises: 9,
+    difficulty: "Intermediate",
+    icon: Target,
+    color: "bg-lime-500/10 text-lime-500",
+    exerciseList: [
+      { name: "Barbell Squats", category: "Legs", sets: 4, reps: "6-8" },
+      { name: "Romanian Deadlifts", category: "Legs", sets: 4, reps: "8-10" },
+      { name: "Leg Press", category: "Legs", sets: 3, reps: "10-12" },
+      { name: "Hack Squats", category: "Legs", sets: 3, reps: "10-12" },
+      { name: "Walking Lunges", category: "Legs", sets: 3, reps: "12-15" },
+      { name: "Leg Curls", category: "Legs", sets: 3, reps: "12-15" },
+      { name: "Leg Extensions", category: "Legs", sets: 3, reps: "12-15" },
+      { name: "Calf Raises", category: "Legs", sets: 4, reps: "15-20" },
+      { name: "Hip Thrusts", category: "Legs", sets: 3, reps: "10-12" }
+    ]
   }
 ]
 

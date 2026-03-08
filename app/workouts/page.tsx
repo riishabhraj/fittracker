@@ -4,10 +4,22 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, TrendingUp, MoreVertical, Play, Dumbbell } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Calendar, Clock, TrendingUp, Play, BookmarkPlus } from "lucide-react"
+import Image from "next/image"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import Link from "next/link"
+import { getWorkouts } from "@/lib/workout-storage"
+import { toast } from "sonner"
+
+interface RawExercise {
+  id: string
+  name: string
+  category: string
+  sets: Array<{ reps: number; weight: number; completed: boolean }>
+}
 
 interface Workout {
   id: string
@@ -18,6 +30,7 @@ interface Workout {
   totalWeight: number
   personalRecords: number
   status: "completed" | "in-progress" | "planned"
+  rawExercises: RawExercise[]
 }
 
 type FilterType = "All" | "This Week" | "This Month" | "Completed" | "With PRs"
@@ -26,10 +39,10 @@ const filters: FilterType[] = ["All", "This Week", "This Month", "Completed", "W
 
 function formatDate(dateString: string) {
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
   })
 }
 
@@ -37,11 +50,9 @@ function isThisWeek(date: Date): boolean {
   const now = new Date()
   const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
   startOfWeek.setHours(0, 0, 0, 0)
-  
   const endOfWeek = new Date(startOfWeek)
   endOfWeek.setDate(startOfWeek.getDate() + 6)
   endOfWeek.setHours(23, 59, 59, 999)
-  
   return date >= startOfWeek && date <= endOfWeek
 }
 
@@ -50,59 +61,120 @@ function isThisMonth(date: Date): boolean {
   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
 }
 
+function SaveAsTemplateDialog({
+  workout,
+  onClose,
+}: {
+  workout: Workout
+  onClose: () => void
+}) {
+  const [name, setName] = useState(workout.name)
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          exercises: workout.rawExercises.map((e) => ({
+            id: e.id,
+            name: e.name,
+            category: e.category,
+            sets: e.sets.map((s) => ({ reps: s.reps, weight: s.weight })),
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Template saved! Find it in My Templates.")
+      onClose()
+    } catch {
+      toast.error("Failed to save template")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Save as Template</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <p className="text-sm text-muted-foreground">
+            This will save {workout.exercises} exercise{workout.exercises !== 1 ? "s" : ""} as a reusable template.
+          </p>
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-1.5">Template name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. My Push Day"
+              className="h-11 bg-card border-border"
+              onKeyDown={(e) => e.key === "Enter" && save()}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+              onClick={save}
+              disabled={saving || !name.trim()}
+            >
+              {saving ? "Saving…" : "Save Template"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function WorkoutsPage() {
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [activeFilter, setActiveFilter] = useState<FilterType>("All")
   const [filteredWorkouts, setFilteredWorkouts] = useState<Workout[]>([])
+  const [savingWorkout, setSavingWorkout] = useState<Workout | null>(null)
 
-  // Load workouts from localStorage
   useEffect(() => {
-    const loadWorkouts = () => {
+    const loadWorkouts = async () => {
       try {
-        const savedWorkouts = localStorage.getItem('fittracker_workouts')
-        if (savedWorkouts) {
-          const parsedWorkouts = JSON.parse(savedWorkouts)
-          const formattedWorkouts: Workout[] = parsedWorkouts.map((workout: any, index: number) => ({
-            id: workout.id || `workout-${index}`,
-            name: workout.name || 'Custom Workout',
-            date: workout.date || new Date().toISOString().split('T')[0],
-            duration: `${workout.duration || 0} min`,
-            exercises: workout.exercises?.length || 0,
-            totalWeight: workout.totalWeight || 0,
-            personalRecords: workout.personalRecords || 0,
-            status: workout.status || 'completed'
-          }))
-          
-          // Sort by date (newest first)
-          formattedWorkouts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          setWorkouts(formattedWorkouts)
-        }
+        const raw = await getWorkouts()
+        const formattedWorkouts: Workout[] = (raw as any[]).map((workout) => ({
+          id: workout.id,
+          name: workout.name || "Custom Workout",
+          date: workout.date || new Date().toISOString(),
+          duration: `${workout.duration || 0} min`,
+          exercises: workout.exercises?.length || 0,
+          totalWeight: workout.totalWeight || 0,
+          personalRecords: workout.personalRecords || 0,
+          status: workout.status || "completed",
+          rawExercises: workout.exercises || [],
+        }))
+        formattedWorkouts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setWorkouts(formattedWorkouts)
       } catch (error) {
-        console.error('Error loading workouts:', error)
+        console.error("Error loading workouts:", error)
         setWorkouts([])
       }
     }
 
     loadWorkouts()
-    
-    // Listen for workout updates
-    const handleStorageChange = () => {
-      loadWorkouts()
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('workoutDataChanged', handleStorageChange)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('workoutDataChanged', handleStorageChange)
-    }
+    window.addEventListener("workoutDataChanged", loadWorkouts)
+    return () => window.removeEventListener("workoutDataChanged", loadWorkouts)
   }, [])
 
   // Apply filters
   useEffect(() => {
     let filtered = [...workouts]
-    
+
     switch (activeFilter) {
       case "This Week":
         filtered = workouts.filter(workout => isThisWeek(new Date(workout.date)))
@@ -121,13 +193,13 @@ export default function WorkoutsPage() {
         filtered = workouts
         break
     }
-    
+
     setFilteredWorkouts(filtered)
   }, [workouts, activeFilter])
 
   const totalWorkouts = workouts.length
-  const avgDuration = workouts.length > 0 
-    ? Math.round(workouts.reduce((sum, w) => sum + parseInt(w.duration), 0) / workouts.length) 
+  const avgDuration = workouts.length > 0
+    ? Math.round(workouts.reduce((sum, w) => sum + parseInt(w.duration), 0) / workouts.length)
     : 0
   const totalPRs = workouts.reduce((sum, w) => sum + w.personalRecords, 0)
   const totalWeight = workouts.reduce((sum, w) => sum + w.totalWeight, 0)
@@ -202,12 +274,12 @@ export default function WorkoutsPage() {
           {filteredWorkouts.length === 0 ? (
             <Card className="p-8 bg-card border-border">
               <div className="text-center">
-                <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <Image src="/fittracker-app-icon.png" alt="FitTracker" width={64} height={64} className="mx-auto mb-4 rounded-2xl opacity-50" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   {activeFilter === "All" ? "No workouts yet" : `No workouts found for "${activeFilter}"`}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  {activeFilter === "All" 
+                  {activeFilter === "All"
                     ? "Start your fitness journey by logging your first workout!"
                     : "Try adjusting your filter or log more workouts."
                   }
@@ -234,7 +306,7 @@ export default function WorkoutsPage() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
@@ -251,21 +323,24 @@ export default function WorkoutsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Link href="/log-workout" className="block">
+                      <Link href="/log-workout">
                         <Button size="sm" className="bg-primary hover:bg-primary/90">
                           <Play className="h-4 w-4 mr-1" />
                           Repeat Workout
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      {workout.rawExercises.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSavingWorkout(workout)}
+                        >
+                          <BookmarkPlus className="h-4 w-4 mr-1" />
+                          Save as Template
+                        </Button>
+                      )}
                     </div>
                   </div>
-
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
                 </div>
               </Card>
             ))
@@ -281,6 +356,14 @@ export default function WorkoutsPage() {
           </div>
         )}
       </main>
+
+      {/* Save as Template dialog */}
+      {savingWorkout && (
+        <SaveAsTemplateDialog
+          workout={savingWorkout}
+          onClose={() => setSavingWorkout(null)}
+        />
+      )}
     </div>
   )
 }

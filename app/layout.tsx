@@ -1,17 +1,19 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Roboto } from "next/font/google"
+import { Space_Grotesk } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ClientBottomNavigation } from "@/components/client-bottom-navigation"
+import { ClientBottomNavigation, BottomNavPadding } from "@/components/client-bottom-navigation"
 import { SessionCleanup } from "@/components/session-cleanup"
+import { SessionProvider } from "next-auth/react"
+import { SessionGuard } from "@/components/session-guard"
 import { Toaster } from "sonner"
 import "./globals.css"
 
-const roboto = Roboto({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-roboto",
+  variable: "--font-space-grotesk",
 })
 
 export const metadata: Metadata = {
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "FitTracker",
     "application-name": "FitTracker",
-    "msapplication-TileColor": "#ea580c",
+    "msapplication-TileColor": "#0f0f0f",
     "msapplication-config": "/browserconfig.xml",
   },
 }
@@ -44,7 +46,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#ea580c",
+  themeColor: "#0f0f0f",
 }
 
 export default function RootLayout({
@@ -53,18 +55,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={roboto.variable} suppressHydrationWarning>
+    <html lang="en" className={spaceGrotesk.variable} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <style
           dangerouslySetInnerHTML={{
             __html: `
               :root {
-                --font-roboto: ${roboto.style.fontFamily};
+                --font-space-grotesk: ${spaceGrotesk.style.fontFamily};
               }
               html {
-                font-family: var(--font-roboto), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+                font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
               }
               body {
                 font-family: inherit !important;
@@ -77,20 +77,29 @@ export default function RootLayout({
         />
         <link rel="apple-touch-icon" sizes="180x180" href="/fittracker-app-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/fittracker-favicon.png" />
-        <link rel="mask-icon" href="/fittracker-mask-icon.png" color="#ea580c" />
-        <meta name="msapplication-TileColor" content="#ea580c" />
-        <meta name="theme-color" content="#ea580c" />
+        <link rel="mask-icon" href="/fittracker-mask-icon.png" color="#aaff00" />
+        <meta name="msapplication-TileColor" content="#0f0f0f" />
+        <meta name="theme-color" content="#0f0f0f" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
+                  // Clear all old caches from previous SW versions
+                  if (window.caches) {
+                    caches.keys().then(function(keys) {
+                      keys.forEach(function(key) {
+                        if (!key.includes('v3')) caches.delete(key);
+                      });
+                    });
+                  }
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
-                      console.log('SW registered: ', registration);
+                      // Force the new SW to activate immediately
+                      if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                     })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
+                    .catch(function(err) {
+                      console.log('SW registration failed: ', err);
                     });
                 });
               }
@@ -99,19 +108,22 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <SessionProvider>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <SessionCleanup />
-          <div className="pb-16">
+          <SessionGuard />
+          <BottomNavPadding>
             {children}
-          </div>
+          </BottomNavPadding>
           <ClientBottomNavigation />
           <Toaster richColors position="top-center" />
         </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

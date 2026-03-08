@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Minus, Check, MoreVertical } from "lucide-react"
+import { Plus, Minus, Check, MoreVertical, Trophy } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 
 interface Set {
   reps: number
@@ -21,15 +22,37 @@ interface Exercise {
   sets: Set[]
 }
 
+export interface PersonalRecord {
+  weight: number
+  reps: number
+  date?: string
+}
+
 interface ExerciseLoggerProps {
   exercise: Exercise
   exerciseNumber: number
   onUpdate: (exercise: Exercise) => void
   onRemove: () => void
+  personalRecord?: PersonalRecord
 }
 
-export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }: ExerciseLoggerProps) {
+export function ExerciseLogger({
+  exercise,
+  exerciseNumber,
+  onUpdate,
+  onRemove,
+  personalRecord,
+}: ExerciseLoggerProps) {
   const [restTimer, setRestTimer] = useState<number | null>(null)
+  const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Track which set indices hit a PR this session (for the badge)
+  const [prSetIndices, setPrSetIndices] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    return () => {
+      if (restTimerRef.current) clearInterval(restTimerRef.current)
+    }
+  }, [])
 
   const updateSet = (setIndex: number, field: "reps" | "weight" | "completed", value: number | boolean) => {
     const updatedSets = exercise.sets.map((set, index) => (index === setIndex ? { ...set, [field]: value } : set))
@@ -50,17 +73,44 @@ export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }:
     if (exercise.sets.length > 1) {
       const updatedSets = exercise.sets.filter((_, index) => index !== setIndex)
       onUpdate({ ...exercise, sets: updatedSets })
+      // Remove PR badge for removed set
+      setPrSetIndices((prev) => {
+        const next = new Set(prev)
+        next.delete(setIndex)
+        return next
+      })
     }
   }
 
+  function isNewPR(set: Set): boolean {
+    if (!set.reps || !set.weight) return false
+    if (!personalRecord) return false // No previous PR — technically everything is a PR, but only flag weight-based PRs
+    return (
+      set.weight > personalRecord.weight ||
+      (set.weight === personalRecord.weight && set.reps > personalRecord.reps)
+    )
+  }
+
   const completeSet = (setIndex: number) => {
+    const set = exercise.sets[setIndex]
     updateSet(setIndex, "completed", true)
-    // Start rest timer (90 seconds default)
+
+    // PR detection
+    if (isNewPR(set)) {
+      setPrSetIndices((prev) => new Set([...prev, setIndex]))
+      toast(`🏆 New PR! ${exercise.name} — ${set.weight} kg × ${set.reps}`, {
+        duration: 4000,
+      })
+    }
+
+    // Rest timer
+    if (restTimerRef.current) clearInterval(restTimerRef.current)
     setRestTimer(90)
-    const timer = setInterval(() => {
+    restTimerRef.current = setInterval(() => {
       setRestTimer((prev) => {
         if (prev && prev <= 1) {
-          clearInterval(timer)
+          clearInterval(restTimerRef.current!)
+          restTimerRef.current = null
           return null
         }
         return prev ? prev - 1 : null
@@ -77,9 +127,16 @@ export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }:
           </div>
           <div>
             <h3 className="font-semibold text-foreground">{exercise.name}</h3>
-            <Badge variant="secondary" className="text-xs">
-              {exercise.category}
-            </Badge>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Badge variant="secondary" className="text-xs">
+                {exercise.category}
+              </Badge>
+              {personalRecord && (
+                <span className="text-xs text-muted-foreground">
+                  PR: {personalRecord.weight} kg × {personalRecord.reps}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -120,15 +177,25 @@ export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }:
         <div className="text-center">Set</div>
         <div className="text-center">Reps</div>
         <div className="text-center">Weight</div>
-        <div className="text-center">Previous</div>
+        <div className="text-center">Best PR</div>
         <div className="text-center">✓</div>
       </div>
 
       {/* Sets */}
       <div className="space-y-2">
         {exercise.sets.map((set, setIndex) => (
-          <div key={setIndex} className="grid grid-cols-5 gap-2 items-center">
-            <div className="text-center text-sm font-medium text-foreground">{setIndex + 1}</div>
+          <div
+            key={setIndex}
+            className={`grid grid-cols-5 gap-2 items-center rounded-lg transition-colors ${
+              prSetIndices.has(setIndex) ? "bg-yellow-500/8" : ""
+            }`}
+          >
+            <div className="text-center text-sm font-medium text-foreground flex items-center justify-center gap-1">
+              {setIndex + 1}
+              {prSetIndices.has(setIndex) && (
+                <Trophy className="h-3 w-3 text-yellow-500" />
+              )}
+            </div>
 
             <Input
               type="number"
@@ -146,8 +213,11 @@ export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }:
               disabled={set.completed}
             />
 
+            {/* Best PR column (replaces "Previous" which was showing the prior set in the same session) */}
             <div className="text-center text-sm text-muted-foreground">
-              {setIndex > 0 ? `${exercise.sets[setIndex - 1].reps} × ${exercise.sets[setIndex - 1].weight}` : "-"}
+              {personalRecord
+                ? `${personalRecord.weight}×${personalRecord.reps}`
+                : "—"}
             </div>
 
             <div className="flex justify-center">
@@ -155,10 +225,14 @@ export function ExerciseLogger({ exercise, exerciseNumber, onUpdate, onRemove }:
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 text-green-500 hover:text-green-600"
+                  className={`h-8 w-8 p-0 ${prSetIndices.has(setIndex) ? "text-yellow-500 hover:text-yellow-600" : "text-green-500 hover:text-green-600"}`}
                   onClick={() => updateSet(setIndex, "completed", false)}
                 >
-                  <Check className="h-4 w-4" />
+                  {prSetIndices.has(setIndex) ? (
+                    <Trophy className="h-4 w-4" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                 </Button>
               ) : (
                 <Button

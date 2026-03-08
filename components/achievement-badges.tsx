@@ -23,9 +23,9 @@ export function AchievementBadges() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const calculateAchievements = () => {
-      const workouts = getWorkouts()
-      const stats = getWorkoutStats()
+    const calculateAchievements = async () => {
+      const workouts = await getWorkouts()
+      const stats = await getWorkoutStats()
       
       // Calculate achievements based on real data
       const calculatedAchievements: Achievement[] = [

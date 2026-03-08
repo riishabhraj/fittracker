@@ -27,72 +27,57 @@ export interface WorkoutTemplate {
   id: string
   name: string
   description: string
-  exercises: Omit<Exercise, 'sets'>[]
+  exercises: Omit<Exercise, "sets">[]
   color: string
   icon: string
 }
 
-// Storage keys
-const STORAGE_KEYS = {
-  WORKOUTS: 'fittracker_workouts',
-  SETTINGS: 'fittracker_settings',
-  TEMPLATES: 'fittracker_templates'
+// ── Core CRUD (API-backed) ────────────────────────────────────────────────────
+
+export const getWorkouts = async (): Promise<Workout[]> => {
+  const res = await fetch("/api/workouts")
+  if (!res.ok) throw new Error(`Failed to fetch workouts (${res.status})`)
+  return res.json()
 }
 
-// Workout operations
-export const saveWorkout = (workout: Workout): void => {
-  try {
-    const workouts = getWorkouts()
-    const existingIndex = workouts.findIndex(w => w.id === workout.id)
-    
-    if (existingIndex >= 0) {
-      workouts[existingIndex] = workout
-    } else {
-      workouts.push(workout)
-    }
-    
-    localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(workouts))
-    
-    // Dispatch custom event for real-time updates
-    window.dispatchEvent(new CustomEvent('workoutDataChanged'))
-  } catch (error) {
-    console.error('Failed to save workout:', error)
+export const saveWorkout = async (workout: Omit<Workout, "id"> & { id?: string }): Promise<void> => {
+  const res = await fetch("/api/workouts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(workout),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error ?? `Failed to save workout (${res.status})`)
   }
+  window.dispatchEvent(new CustomEvent("workoutDataChanged"))
 }
 
-export const getWorkouts = (): Workout[] => {
-  try {
-    if (typeof window === 'undefined') return []
-    const stored = localStorage.getItem(STORAGE_KEYS.WORKOUTS)
-    return stored ? JSON.parse(stored) : []
-  } catch (error) {
-    console.error('Failed to get workouts:', error)
-    return []
-  }
+export const deleteWorkout = async (id: string): Promise<void> => {
+  const res = await fetch(`/api/workouts/${id}`, { method: "DELETE" })
+  if (!res.ok) throw new Error(`Failed to delete workout (${res.status})`)
+  window.dispatchEvent(new CustomEvent("workoutDataChanged"))
 }
 
-export const getWorkoutById = (id: string): Workout | null => {
-  const workouts = getWorkouts()
-  return workouts.find(w => w.id === id) || null
+export const getWorkoutById = async (id: string): Promise<Workout | null> => {
+  const res = await fetch(`/api/workouts/${id}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Failed to fetch workout (${res.status})`)
+  return res.json()
 }
 
-export const deleteWorkout = (id: string): void => {
-  try {
-    const workouts = getWorkouts().filter(w => w.id !== id)
-    localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(workouts))
-    window.dispatchEvent(new CustomEvent('workoutDataChanged'))
-  } catch (error) {
-    console.error('Failed to delete workout:', error)
-  }
-}
+// ── Computed stats (fetch workouts once, compute locally) ─────────────────────
 
-// Statistics
-export const getWorkoutStats = () => {
-  const workouts = getWorkouts()
+export const getWorkoutStats = async () => {
+  const workouts = await getWorkouts()
+
   const now = new Date()
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-  const thisWeekWorkouts = workouts.filter(w => new Date(w.date) >= startOfWeek)
-  
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay())
+  startOfWeek.setHours(0, 0, 0, 0)
+
+  const thisWeekWorkouts = workouts.filter((w) => new Date(w.date) >= startOfWeek)
+
   return {
     totalWorkouts: workouts.length,
     weeklyWorkouts: thisWeekWorkouts.length,
@@ -101,137 +86,104 @@ export const getWorkoutStats = () => {
     totalWeight: workouts.reduce((sum, w) => sum + w.totalWeight, 0),
     totalHours: Math.round(workouts.reduce((sum, w) => sum + w.duration, 0) / 60),
     currentStreak: calculateStreak(workouts),
-    weeklyGoal: 4, // You can make this configurable
-    avgDuration: workouts.length > 0 ? Math.round(workouts.reduce((sum, w) => sum + w.duration, 0) / workouts.length) : 0
+    weeklyGoal: 4,
+    avgDuration:
+      workouts.length > 0
+        ? Math.round(workouts.reduce((sum, w) => sum + w.duration, 0) / workouts.length)
+        : 0,
   }
 }
 
-// Helper functions
-const calculateStreak = (workouts: Workout[]): number => {
+export const calculateStreak = (workouts: Workout[]): number => {
   if (workouts.length === 0) return 0
-  
-  const sortedDates = workouts
-    .map(w => new Date(w.date).toDateString())
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-  
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const uniqueDates = [
+    ...new Set(
+      workouts.map((w) => {
+        const d = new Date(w.date)
+        d.setHours(0, 0, 0, 0)
+        return d.getTime()
+      })
+    ),
+  ].sort((a, b) => b - a)
+
+  const mostRecentDiff = Math.floor((today.getTime() - uniqueDates[0]) / (1000 * 60 * 60 * 24))
+  if (mostRecentDiff > 1) return 0
+
   let streak = 0
-  let currentDate = new Date()
-  
-  for (let i = 0; i < sortedDates.length; i++) {
-    const workoutDate = new Date(sortedDates[i])
-    const daysDiff = Math.floor((currentDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    if (daysDiff === streak) {
+  let expectedTime = uniqueDates[0]
+
+  for (const dateTime of uniqueDates) {
+    if (dateTime === expectedTime) {
       streak++
-    } else if (daysDiff > streak + 1) {
+      expectedTime -= 24 * 60 * 60 * 1000
+    } else {
       break
     }
   }
-  
+
   return streak
 }
 
-export const getRecentWorkouts = (limit: number = 5): Workout[] => {
-  return getWorkouts()
+export const getRecentWorkouts = async (limit = 5): Promise<Workout[]> => {
+  const workouts = await getWorkouts()
+  return workouts
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, limit)
 }
 
-export const getWorkoutsByDateRange = (startDate: Date, endDate: Date): Workout[] => {
-  return getWorkouts().filter(workout => {
-    const workoutDate = new Date(workout.date)
-    return workoutDate >= startDate && workoutDate <= endDate
+export const getWorkoutsByDateRange = (workouts: Workout[], startDate: Date, endDate: Date): Workout[] => {
+  return workouts.filter((w) => {
+    const d = new Date(w.date)
+    return d >= startDate && d <= endDate
   })
 }
 
-export const getWorkoutsByWeek = (weekOffset: number = 0): Workout[] => {
-  const now = new Date()
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (weekOffset * 7)))
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  
-  return getWorkoutsByDateRange(startOfWeek, endOfWeek)
-}
+export const getPersonalRecords = async () => {
+  const workouts = await getWorkouts()
+  const records: { [exerciseName: string]: { weight: number; reps: number; date: string } } = {}
 
-// Generate unique IDs
-export const generateId = (): string => {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9)
-}
-
-// Personal Records
-export const getPersonalRecords = () => {
-  const workouts = getWorkouts()
-  const records: { [exerciseName: string]: { weight: number, reps: number, date: string } } = {}
-  
-  workouts.forEach(workout => {
-    workout.exercises.forEach(exercise => {
-      exercise.sets.forEach(set => {
+  workouts.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      exercise.sets.forEach((set) => {
         if (set.completed) {
           const current = records[exercise.name]
-          if (!current || set.weight > current.weight || 
-              (set.weight === current.weight && set.reps > current.reps)) {
-            records[exercise.name] = {
-              weight: set.weight,
-              reps: set.reps,
-              date: workout.date
-            }
+          if (
+            !current ||
+            set.weight > current.weight ||
+            (set.weight === current.weight && set.reps > current.reps)
+          ) {
+            records[exercise.name] = { weight: set.weight, reps: set.reps, date: workout.date }
           }
         }
       })
     })
   })
-  
+
   return records
 }
 
-// Date utilities
-export const isToday = (date: Date): boolean => {
-  const today = new Date()
-  return date.toDateString() === today.toDateString()
-}
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+export const generateId = (): string =>
+  Date.now().toString() + Math.random().toString(36).substr(2, 9)
+
+export const isToday = (date: Date): boolean =>
+  date.toDateString() === new Date().toDateString()
 
 export const isThisWeek = (date: Date): boolean => {
   const now = new Date()
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  
-  return date >= startOfWeek && date <= endOfWeek
+  const start = new Date(now.setDate(now.getDate() - now.getDay()))
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  return date >= start && date <= end
 }
 
-// Data export/import
-export const exportWorkoutData = (): string => {
-  const data = {
-    workouts: getWorkouts(),
-    exportDate: new Date().toISOString(),
-    version: '1.0.0'
-  }
-  return JSON.stringify(data, null, 2)
-}
-
-export const importWorkoutData = (jsonData: string): boolean => {
-  try {
-    const data = JSON.parse(jsonData)
-    if (data.workouts && Array.isArray(data.workouts)) {
-      localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(data.workouts))
-      window.dispatchEvent(new CustomEvent('workoutDataChanged'))
-      return true
-    }
-    return false
-  } catch (error) {
-    console.error('Failed to import data:', error)
-    return false
-  }
-}
-
-// Clear all data
-export const clearAllData = (): void => {
-  try {
-    localStorage.removeItem(STORAGE_KEYS.WORKOUTS)
-    localStorage.removeItem(STORAGE_KEYS.SETTINGS)
-    localStorage.removeItem(STORAGE_KEYS.TEMPLATES)
-    window.dispatchEvent(new CustomEvent('workoutDataChanged'))
-  } catch (error) {
-    console.error('Failed to clear data:', error)
-  }
+// Export/import kept for backward compat — reads from API
+export const exportWorkoutData = async (): Promise<string> => {
+  const workouts = await getWorkouts()
+  return JSON.stringify({ workouts, exportDate: new Date().toISOString(), version: "2.0.0" }, null, 2)
 }

@@ -2,7 +2,8 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Target, TrendingUp, Calendar, Award, Dumbbell } from "lucide-react"
+import { Plus, Target, TrendingUp, Calendar, Award } from "lucide-react"
+import Image from "next/image"
 import { getWorkoutStats } from "@/lib/workout-storage"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -24,9 +25,10 @@ export function ProgressOverview() {
   const [isNewUser, setIsNewUser] = useState(true)
 
   useEffect(() => {
-    const workoutStats = getWorkoutStats()
-    setStats(workoutStats)
-    setIsNewUser(workoutStats.totalWorkouts === 0)
+    getWorkoutStats().then((workoutStats) => {
+      setStats(workoutStats)
+      setIsNewUser(workoutStats.totalWorkouts === 0)
+    })
   }, [])
 
   if (!stats) {
@@ -39,8 +41,8 @@ export function ProgressOverview() {
         {/* Welcome Message for New Users */}
         <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <div className="text-center space-y-4">
-            <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto">
-              <Dumbbell className="h-8 w-8 text-primary" />
+            <div className="w-fit mx-auto">
+              <Image src="/fittracker-app-icon.png" alt="FitTracker" width={64} height={64} className="rounded-2xl" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to FitTracker!</h2>

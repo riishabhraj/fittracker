@@ -1,102 +1,82 @@
-const CACHE_NAME = "fittracker-v2"
-const STATIC_CACHE = "fittracker-static-v2"
-const DYNAMIC_CACHE = "fittracker-dynamic-v2"
+const CACHE_VERSION = "fittracker-v3"
+const STATIC_CACHE = "fittracker-static-v3"
+const DYNAMIC_CACHE = "fittracker-dynamic-v3"
+const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE]
 
-// Assets to cache on install
+// Only cache these stable public assets
 const STATIC_ASSETS = [
-  "/",
-  "/log-workout",
-  "/progress",
   "/manifest.json",
-  // Add other critical assets here
+  "/fittracker-app-icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
 ]
 
-// Install event - cache static assets
+// Install — cache only stable static assets, skip waiting immediately
 self.addEventListener("install", (event) => {
-  console.log("Service Worker: Installing...")
   event.waitUntil(
-    caches
-      .open(STATIC_CACHE)
-      .then((cache) => {
-        console.log("Service Worker: Caching static assets")
-        return cache.addAll(STATIC_ASSETS)
-      })
-      .then(() => {
-        console.log("Service Worker: Skip waiting")
-        return self.skipWaiting()
-      }),
+    caches.open(STATIC_CACHE)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   )
 })
 
-// Activate event - clean up old caches
+// Activate — delete every cache not in the current version list
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker: Activating...")
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log("Service Worker: Deleting old cache", cacheName)
-              return caches.delete(cacheName)
+    caches.keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (!ALL_CACHES.includes(key)) {
+              return caches.delete(key)
             }
-          }),
+          })
         )
-      })
-      .then(() => {
-        console.log("Service Worker: Claiming clients")
-        return self.clients.claim()
-      }),
+      )
+      .then(() => self.clients.claim())
   )
 })
 
-// Fetch event - serve from cache, fallback to network
+// Fetch — smart strategy per request type
 self.addEventListener("fetch", (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== "GET") {
-    return
-  }
+  if (event.request.method !== "GET") return
+  if (!event.request.url.startsWith("http")) return
 
-  // Skip chrome-extension and other non-http requests
-  if (!event.request.url.startsWith("http")) {
-    return
-  }
+  const url = new URL(event.request.url)
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Return cached version if available
-      if (cachedResponse) {
-        console.log("Service Worker: Serving from cache", event.request.url)
-        return cachedResponse
-      }
+  // 1. Never intercept Next.js build artifacts or HMR — always go to network.
+  //    This prevents stale webpack chunks and hot-update 404s.
+  if (url.pathname.startsWith("/_next/")) return
 
-      // Otherwise fetch from network
-      return fetch(event.request)
+  // 2. Never intercept .well-known, chrome-extension probes, etc.
+  if (url.pathname.startsWith("/.well-known/")) return
+
+  // 3. Navigation requests (HTML pages) — network-first, fall back to cache
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response
-          }
-
-          // Clone the response
-          const responseToCache = response.clone()
-
-          // Add to dynamic cache
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            console.log("Service Worker: Caching dynamic asset", event.request.url)
-            cache.put(event.request, responseToCache)
-          })
-
+          const clone = response.clone()
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, clone))
           return response
         })
-        .catch(() => {
-          // Return offline page for navigation requests
-          if (event.request.mode === "navigate") {
-            return caches.match("/")
-          }
-        })
-    }),
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+    )
+    return
+  }
+
+  // 4. Static assets (icons, manifest) — cache-first, update in background
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const networkFetch = fetch(event.request).then((response) => {
+        if (response && response.status === 200 && response.type === "basic") {
+          const clone = response.clone()
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, clone))
+        }
+        return response
+      })
+      return cached || networkFetch
+    })
   )
 })
 

@@ -16,8 +16,8 @@ export function WorkoutFrequencyChart() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const generateWeeklyData = () => {
-      const workouts = getWorkouts()
+    const generateWeeklyData = async () => {
+      const workouts = await getWorkouts()
       const weeklyData: WeekData[] = []
       
       // Generate last 8 weeks of data

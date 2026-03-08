@@ -4,13 +4,14 @@ import { useState, useEffect, Suspense } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Play, Pause, Check, Dumbbell } from "lucide-react"
+import { Plus, Play, Pause, Check, Activity } from "lucide-react"
+import Image from "next/image"
 import { WorkoutTimer } from "@/components/workout-timer"
 import { ExerciseLogger } from "@/components/exercise-logger"
 import { ExerciseSelector } from "@/components/exercise-selector"
 import { BackButton } from "@/components/back-button"
 import { templates } from "@/components/workout-templates"
-import { saveWorkout, Workout } from "@/lib/workout-storage"
+import { saveWorkout, getPersonalRecords, Workout } from "@/lib/workout-storage"
 import { 
   saveWorkoutSession, 
   getWorkoutSession, 
@@ -44,6 +45,12 @@ function LogWorkoutContent() {
   const [workoutDuration, setWorkoutDuration] = useState(0)
   const [showExerciseSelector, setShowExerciseSelector] = useState(false)
   const [sessionLoaded, setSessionLoaded] = useState(false)
+  const [existingPRs, setExistingPRs] = useState<Record<string, { weight: number; reps: number; date: string }>>({})
+
+  // Load existing PRs once on mount
+  useEffect(() => {
+    getPersonalRecords().then(setExistingPRs).catch(() => {})
+  }, [])
 
   // Load existing workout session or template on mount
   useEffect(() => {
@@ -63,28 +70,58 @@ function LogWorkoutContent() {
       toast.success("🔄 Resumed your workout session!")
       setSessionLoaded(true)
     } else if (templateId) {
-      // Load template (this will override existing session)
-      const template = templates.find(t => t.id === templateId)
-      if (template) {
-        // Clear existing session when loading a new template
-        clearWorkoutSession()
-        
-        setWorkoutName(template.name)
-        
-        const templateExercises: Exercise[] = template.exerciseList.map((exercise, index) => ({
-          id: `template-${index}-${Date.now()}`,
-          name: exercise.name,
-          category: exercise.category,
-          sets: Array(exercise.sets).fill(null).map(() => ({
-            reps: 0,
-            weight: 0,
-            completed: false
+      // Clear existing session when loading a new template
+      clearWorkoutSession()
+
+      // Check if it's a user template (MongoDB ObjectId) or a system template (numeric string)
+      const isUserTemplate = /^[0-9a-f]{24}$/i.test(templateId)
+
+      if (isUserTemplate) {
+        // Load user template from API (async IIFE inside sync useEffect)
+        ;(async () => {
+          try {
+            const res = await fetch(`/api/templates/${templateId}`)
+            if (res.ok) {
+              const userTemplate = await res.json()
+              setWorkoutName(userTemplate.name)
+              const templateExercises: Exercise[] = userTemplate.exercises.map(
+                (exercise: { id?: string; name: string; category: string; sets: Array<{ reps: number; weight: number }> }, index: number) => ({
+                  id: `template-${index}-${Date.now()}`,
+                  name: exercise.name,
+                  category: exercise.category,
+                  sets: exercise.sets.length > 0
+                    ? exercise.sets.map((s) => ({ reps: s.reps, weight: s.weight, completed: false }))
+                    : [{ reps: 0, weight: 0, completed: false }],
+                })
+              )
+              setExercises(templateExercises)
+              setIsWorkoutActive(true)
+              toast.success(`📋 Loaded ${userTemplate.name} with ${userTemplate.exercises.length} exercises!`)
+            }
+          } catch {
+            toast.error("Failed to load template")
+          }
+          setSessionLoaded(true)
+        })();
+      } else {
+        // Load system template
+        const template = templates.find(t => t.id === templateId)
+        if (template) {
+          setWorkoutName(template.name)
+          const templateExercises: Exercise[] = template.exerciseList.map((exercise, index) => ({
+            id: `template-${index}-${Date.now()}`,
+            name: exercise.name,
+            category: exercise.category,
+            sets: Array(exercise.sets).fill(null).map(() => ({
+              reps: 0,
+              weight: 0,
+              completed: false
+            }))
           }))
-        }))
-        
-        setExercises(templateExercises)
-        setIsWorkoutActive(true)
-        toast.success(`📋 Loaded ${template.name} template with ${template.exerciseList.length} exercises!`)
+          setExercises(templateExercises)
+          setIsWorkoutActive(true)
+          toast.success(`📋 Loaded ${template.name} template with ${template.exerciseList.length} exercises!`)
+        }
         setSessionLoaded(true)
       }
     } else {
@@ -161,7 +198,7 @@ function LogWorkoutContent() {
     setExercises(exercises.filter((ex) => ex.id !== exerciseId))
   }
 
-  const finishWorkout = () => {
+  const finishWorkout = async () => {
     if (exercises.length === 0) {
       toast.error("Please add at least one exercise to finish the workout")
       return
@@ -204,15 +241,50 @@ function LogWorkoutContent() {
         totalWeight
       }
 
-      saveWorkout(workout)
-      
-      // Clear the workout session after successful save
+      // Detect new PRs (compare against PRs loaded at session start)
+      const newPRNames: string[] = []
+      completedExercises.forEach((ex) => {
+        const bestSet = ex.sets.reduce(
+          (best, set) =>
+            !best ||
+            set.weight > best.weight ||
+            (set.weight === best.weight && set.reps > best.reps)
+              ? set
+              : best,
+          null as typeof ex.sets[0] | null
+        )
+        if (!bestSet) return
+        const prev = existingPRs[ex.name]
+        const isPR =
+          !prev ||
+          bestSet.weight > prev.weight ||
+          (bestSet.weight === prev.weight && bestSet.reps > prev.reps)
+        if (isPR) newPRNames.push(ex.name)
+      })
+
+      await saveWorkout(workout)
       clearWorkoutSession()
-      
-      toast.success("✅ Workout saved successfully!")
-      
-      // Navigate back to dashboard
-      router.push("/")
+
+      // Find top exercise by total volume (weight × reps)
+      const topExercise = completedExercises.reduce((top, ex) => {
+        const vol = ex.sets.reduce((s, set) => s + set.weight * set.reps, 0)
+        const topVol = top.sets.reduce((s, set) => s + set.weight * set.reps, 0)
+        return vol > topVol ? ex : top
+      }, completedExercises[0])
+
+      const searchParams = new URLSearchParams({
+        name: workout.name,
+        sets: String(totalSets),
+        reps: String(totalReps),
+        weight: String(Math.round(totalWeight)),
+        duration: String(workoutDuration),
+        exercises: String(completedExercises.length),
+        topExercise: topExercise?.name ?? "",
+        topWeight: String(topExercise?.sets[0]?.weight ?? 0),
+        prCount: String(newPRNames.length),
+        prNames: newPRNames.join(","),
+      })
+      router.push(`/workout-complete?${searchParams}`)
     } catch (error) {
       console.error("Error saving workout:", error)
       toast.error("Failed to save workout. Please try again.")
@@ -288,7 +360,7 @@ function LogWorkoutContent() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Dumbbell className="h-5 w-5 text-primary" />
+                  <Activity className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Workout Progress</p>
@@ -314,6 +386,7 @@ function LogWorkoutContent() {
                 exerciseNumber={index + 1}
                 onUpdate={(updatedExercise) => updateExercise(exercise.id, updatedExercise)}
                 onRemove={() => removeExercise(exercise.id)}
+                personalRecord={existingPRs[exercise.name]}
               />
             ))}
           </div>
@@ -352,7 +425,7 @@ export default function LogWorkoutPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Dumbbell className="h-8 w-8 text-primary mx-auto mb-2 animate-pulse" />
+          <Image src="/fittracker-app-icon.png" alt="FitTracker" width={40} height={40} className="mx-auto mb-2 rounded-xl animate-pulse" />
           <p className="text-muted-foreground">Loading workout...</p>
         </div>
       </div>

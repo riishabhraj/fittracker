@@ -29,8 +29,8 @@ export function StrengthProgressChart() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const generateProgressData = () => {
-      const workouts = getWorkouts()
+    const generateProgressData = async () => {
+      const workouts = await getWorkouts()
       const exerciseProgress: { [key: string]: ProgressData[] } = {}
       
       workouts.forEach(workout => {

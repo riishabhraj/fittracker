@@ -9,10 +9,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // PWA/APK optimization
-  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
-  trailingSlash: true,
-  distDir: 'out',
   // experimental: {
   //   optimizePackageImports: ['lucide-react'],
   // },

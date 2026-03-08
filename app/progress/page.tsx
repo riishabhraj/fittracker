@@ -1,8 +1,7 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Calendar, Target, Award, Download, Shield } from "lucide-react"
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
 import { StrengthProgressChart } from "@/components/strength-progress-chart"
@@ -18,11 +17,20 @@ import { exportGoalData } from "@/lib/goal-storage"
 import { toast } from "sonner"
 import Link from "next/link"
 
+const TABS = [
+  { value: "overview",      label: "Overview",  icon: TrendingUp },
+  { value: "strength",      label: "Strength",  icon: Target },
+  { value: "body",          label: "Body",      icon: Calendar },
+  { value: "achievements",  label: "Awards",    icon: Award },
+]
+
 export default function ProgressPage() {
-  const handleExportData = () => {
+  const [activeTab, setActiveTab] = useState("overview")
+
+  const handleExportData = async () => {
     try {
-      const workoutData = JSON.parse(exportWorkoutData())
-      const goalData = JSON.parse(exportGoalData())
+      const workoutData = JSON.parse(await exportWorkoutData())
+      const goalData = JSON.parse(await exportGoalData())
       
       // Combine both datasets
       const combinedData = {
@@ -81,57 +89,54 @@ export default function ProgressPage() {
         {/* Active Workout Session Notification */}
         <WorkoutSessionNotification className="mb-6" />
         
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/10 p-1 h-auto rounded-lg border border-border">
-            <TabsTrigger
-              value="overview"
-              className="flex items-center gap-2 py-3 px-4 rounded-md transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/20 text-sm font-medium"
-            >
-              <TrendingUp className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="strength"
-              className="flex items-center gap-2 py-3 px-4 rounded-md transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/20 text-sm font-medium"
-            >
-              <Target className="h-4 w-4" />
-              Strength
-            </TabsTrigger>
-            <TabsTrigger
-              value="body"
-              className="flex items-center gap-2 py-3 px-4 rounded-md transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/20 text-sm font-medium"
-            >
-              <Calendar className="h-4 w-4" />
-              Body
-            </TabsTrigger>
-            <TabsTrigger
-              value="achievements"
-              className="flex items-center gap-2 py-3 px-4 rounded-md transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/20 text-sm font-medium"
-            >
-              <Award className="h-4 w-4" />
-              Awards
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          {/* Tab Bar */}
+          <div className="grid grid-cols-4 gap-1 bg-card p-1 rounded-xl border border-border">
+            {TABS.map(({ value, label, icon: Icon }) => {
+              const isActive = activeTab === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setActiveTab(value)}
+                  style={isActive ? { backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" } : {}}
+                  className={[
+                    "flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive ? "shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/20",
+                  ].join(" ")}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sm:hidden text-xs">{label}</span>
+                </button>
+              )
+            })}
+          </div>
 
-          <TabsContent value="overview" className="space-y-6">
-            <ProgressOverview />
-            <WorkoutFrequencyChart />
-            <PersonalRecords />
-          </TabsContent>
-
-          <TabsContent value="strength" className="space-y-6">
-            <StrengthProgressChart />
-            <PersonalRecords showAll />
-          </TabsContent>
-
-          <TabsContent value="body" className="space-y-6">
-            <BodyMeasurements />
-          </TabsContent>
-
-          <TabsContent value="achievements" className="space-y-6">
-            <AchievementBadges />
-          </TabsContent>
-        </Tabs>
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              <ProgressOverview />
+              <WorkoutFrequencyChart />
+              <PersonalRecords />
+            </div>
+          )}
+          {activeTab === "strength" && (
+            <div className="space-y-6">
+              <StrengthProgressChart />
+              <PersonalRecords showAll />
+            </div>
+          )}
+          {activeTab === "body" && (
+            <div className="space-y-6">
+              <BodyMeasurements />
+            </div>
+          )}
+          {activeTab === "achievements" && (
+            <div className="space-y-6">
+              <AchievementBadges />
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-border">

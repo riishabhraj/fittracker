@@ -39,7 +39,7 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
     setShowCustomForm(false)
   }
 
-  const handleCreateFromTemplate = () => {
+  const handleCreateFromTemplate = async () => {
     if (!selectedTemplate) return
 
     const goal: Goal = {
@@ -66,14 +66,14 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
       ;(goal as any).streak = 0
     }
 
-    saveGoal(goal)
+    await saveGoal(goal)
     toast.success(`Goal "${goal.title}" created successfully!`)
     setOpen(false)
     setSelectedTemplate(null)
     onGoalCreated?.()
   }
 
-  const handleCreateCustom = () => {
+  const handleCreateCustom = async () => {
     if (!customGoal.title || !customGoal.target || !customGoal.unit) {
       toast.error("Please fill in all required fields")
       return
@@ -102,7 +102,7 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
       ;(goal as any).streak = 0
     }
 
-    saveGoal(goal)
+    await saveGoal(goal)
     toast.success(`Goal "${goal.title}" created successfully!`)
     setOpen(false)
     setShowCustomForm(false)
