@@ -6,6 +6,8 @@ const SetSchema = new Schema(
     weight: { type: Number, default: 0, min: 0 },
     completed: { type: Boolean, default: false },
     restTime: { type: Number, min: 0 },
+    estimated1RM: { type: Number, min: 0 },
+    rpe: { type: Number, min: 1, max: 10 },
   },
   { _id: false }
 )
@@ -16,6 +18,7 @@ const ExerciseSchema = new Schema(
     name: { type: String, required: true, trim: true },
     category: { type: String, trim: true },
     sets: [SetSchema],
+    supersetGroup: { type: String },
   },
   { _id: false }
 )

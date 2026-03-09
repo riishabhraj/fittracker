@@ -6,6 +6,9 @@ import { TrendingUp, Calendar, Target, Award, Download, Shield } from "lucide-re
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
 import { StrengthProgressChart } from "@/components/strength-progress-chart"
 import { PersonalRecords } from "@/components/personal-records"
+import { OneRMHistoryChart } from "@/components/one-rm-history-chart"
+import { MuscleHeatmap } from "@/components/muscle-heatmap"
+import { PushPullLegsChart } from "@/components/push-pull-legs-chart"
 import { BodyMeasurements } from "@/components/body-measurements"
 import { AchievementBadges } from "@/components/achievement-badges"
 import { ProgressOverview } from "@/components/progress-overview"
@@ -63,8 +66,8 @@ export default function ProgressPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 pt-12 pb-6">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="container mx-auto px-4 pt-4 pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <BackButton />
@@ -117,11 +120,14 @@ export default function ProgressPage() {
             <div className="space-y-6">
               <ProgressOverview />
               <WorkoutFrequencyChart />
+              <MuscleHeatmap />
+              <PushPullLegsChart />
               <PersonalRecords />
             </div>
           )}
           {activeTab === "strength" && (
             <div className="space-y-6">
+              <OneRMHistoryChart />
               <StrengthProgressChart />
               <PersonalRecords showAll />
             </div>

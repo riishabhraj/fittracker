@@ -14,6 +14,7 @@ export interface Exercise {
   name: string
   category: string
   sets: Set[]
+  supersetGroup?: string
 }
 
 export interface Set {
@@ -21,6 +22,8 @@ export interface Set {
   weight: number
   completed: boolean
   restTime?: number
+  estimated1RM?: number
+  rpe?: number
 }
 
 export interface WorkoutTemplate {
@@ -164,6 +167,50 @@ export const getPersonalRecords = async () => {
   })
 
   return records
+}
+
+// ── Pure sync helpers (take pre-fetched workouts, no network call) ────────────
+
+export function computePersonalRecords(
+  workouts: Workout[]
+): Record<string, { weight: number; reps: number; date: string }> {
+  const records: Record<string, { weight: number; reps: number; date: string }> = {}
+  workouts.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      exercise.sets.forEach((set) => {
+        if (set.completed) {
+          const current = records[exercise.name]
+          if (
+            !current ||
+            set.weight > current.weight ||
+            (set.weight === current.weight && set.reps > current.reps)
+          ) {
+            records[exercise.name] = { weight: set.weight, reps: set.reps, date: workout.date }
+          }
+        }
+      })
+    })
+  })
+  return records
+}
+
+export function getExerciseHistoryFromWorkouts(
+  workouts: Workout[],
+  exerciseName: string,
+  limit = 5
+): Exercise[] {
+  const sessions: Exercise[] = []
+  const sorted = [...workouts].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+  for (const w of sorted) {
+    const ex = w.exercises.find((e) => e.name === exerciseName)
+    if (ex && ex.sets.some((s) => s.completed)) {
+      sessions.push(ex)
+      if (sessions.length >= limit) break
+    }
+  }
+  return sessions // newest first
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

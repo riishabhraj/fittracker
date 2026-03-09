@@ -1,11 +1,13 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Sparkles, Flame, Home, Trophy } from "lucide-react"
+import { Plus, Sparkles, Flame, Home, Trophy, Share2 } from "lucide-react"
 import Link from "next/link"
 import { getWorkoutStats } from "@/lib/workout-storage"
+import { ShareCard } from "@/components/share-card"
+import { shareWorkoutCard } from "@/lib/share-utils"
 
 // ─── AI suggestion (rule-based) ───────────────────────────────────────────────
 
@@ -44,6 +46,8 @@ function WorkoutCompleteContent() {
   const params = useSearchParams()
   const router = useRouter()
   const [streak, setStreak] = useState(0)
+  const [sharing, setSharing] = useState(false)
+  const shareCardRef = useRef<HTMLDivElement>(null)
 
   const name         = params.get("name")     ?? "Workout"
   const sets         = Number(params.get("sets")     ?? 0)
@@ -56,6 +60,16 @@ function WorkoutCompleteContent() {
   const prNames      = params.get("prNames") ? params.get("prNames")!.split(",").filter(Boolean) : []
 
   const suggestion = getSuggestion(topExercise, topWeight, sets)
+
+  const handleShare = async () => {
+    if (!shareCardRef.current) return
+    setSharing(true)
+    try {
+      await shareWorkoutCard(shareCardRef.current, `${name.replace(/\s+/g, "-")}-workout.png`)
+    } finally {
+      setSharing(false)
+    }
+  }
 
   useEffect(() => {
     getWorkoutStats().then((s) => setStreak(s.currentStreak)).catch(() => {})
@@ -145,6 +159,15 @@ function WorkoutCompleteContent() {
             <Home className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
+          <Button
+            variant="outline"
+            className="w-full h-12 font-semibold text-sm"
+            onClick={handleShare}
+            disabled={sharing}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            {sharing ? "Preparing…" : "Share Workout"}
+          </Button>
           <Link href="/log-workout" className="block">
             <Button variant="outline" className="w-full h-12 font-semibold text-sm">
               <Plus className="h-4 w-4 mr-2" />
@@ -153,6 +176,19 @@ function WorkoutCompleteContent() {
           </Link>
         </div>
       </main>
+
+      {/* Hidden share card — rendered off-screen for html2canvas */}
+      <div style={{ position: "fixed", left: "-9999px", top: 0, pointerEvents: "none" }}>
+        <ShareCard
+          ref={shareCardRef}
+          workoutName={name}
+          duration={duration}
+          sets={sets}
+          reps={reps}
+          weight={weight}
+          prCount={prCount}
+        />
+      </div>
     </div>
   )
 }

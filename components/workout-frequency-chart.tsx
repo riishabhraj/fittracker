@@ -44,8 +44,9 @@ export function WorkoutFrequencyChart() {
       return weeklyData
     }
 
-    const updateData = () => {
-      setData(generateWeeklyData())
+    const updateData = async () => {
+      const weeklyData = await generateWeeklyData()
+      setData(weeklyData)
       setLoading(false)
     }
 

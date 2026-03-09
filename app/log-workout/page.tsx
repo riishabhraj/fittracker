@@ -9,35 +9,51 @@ import Image from "next/image"
 import { WorkoutTimer } from "@/components/workout-timer"
 import { ExerciseLogger } from "@/components/exercise-logger"
 import { ExerciseSelector } from "@/components/exercise-selector"
+import { SupersetBracket } from "@/components/superset-bracket"
 import { BackButton } from "@/components/back-button"
 import { templates } from "@/components/workout-templates"
-import { saveWorkout, getPersonalRecords, Workout } from "@/lib/workout-storage"
-import { 
-  saveWorkoutSession, 
-  getWorkoutSession, 
-  clearWorkoutSession, 
-  useWorkoutSessionAutoSave 
+import {
+  saveWorkout,
+  getWorkouts,
+  computePersonalRecords,
+  getExerciseHistoryFromWorkouts,
+  type Workout,
+} from "@/lib/workout-storage"
+import {
+  clearWorkoutSession,
+  getWorkoutSession,
+  useWorkoutSessionAutoSave,
 } from "@/lib/workout-session-storage"
+import { computeSuggestion, type SuggestedSet } from "@/lib/progressive-overload"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+
+// ─── Local types ──────────────────────────────────────────────────────────────
+
+interface ExerciseSet {
+  reps: number
+  weight: number
+  completed: boolean
+  estimated1RM?: number
+  rpe?: number
+}
 
 interface Exercise {
   id: string
   name: string
   category: string
-  sets: Array<{
-    reps: number
-    weight: number
-    completed: boolean
-  }>
+  sets: ExerciseSet[]
+  supersetGroup?: string
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 function LogWorkoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const templateId = searchParams.get('template')
+  const templateId = searchParams.get("template")
   const { saveSession } = useWorkoutSessionAutoSave()
-  
+
   const [workoutName, setWorkoutName] = useState("New Workout")
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
@@ -45,39 +61,59 @@ function LogWorkoutContent() {
   const [workoutDuration, setWorkoutDuration] = useState(0)
   const [showExerciseSelector, setShowExerciseSelector] = useState(false)
   const [sessionLoaded, setSessionLoaded] = useState(false)
-  const [existingPRs, setExistingPRs] = useState<Record<string, { weight: number; reps: number; date: string }>>({})
 
-  // Load existing PRs once on mount
+  // Single cache of all workouts — used for both PRs and suggestions
+  const [existingPRs, setExistingPRs] = useState<
+    Record<string, { weight: number; reps: number; date: string }>
+  >({})
+  const [suggestions, setSuggestions] = useState<Record<string, SuggestedSet | null>>({})
+  const [allWorkouts, setAllWorkouts] = useState<Workout[]>([])
+
+  // ── One fetch on mount for PRs + history ────────────────────────────────────
   useEffect(() => {
-    getPersonalRecords().then(setExistingPRs).catch(() => {})
+    getWorkouts()
+      .then((workouts) => {
+        setAllWorkouts(workouts)
+        setExistingPRs(computePersonalRecords(workouts))
+      })
+      .catch(() => {})
   }, [])
 
-  // Load existing workout session or template on mount
+  // Recompute suggestion whenever an exercise is added or allWorkouts loads
+  useEffect(() => {
+    if (allWorkouts.length === 0 && exercises.length === 0) return
+    const newSuggestions: Record<string, SuggestedSet | null> = {}
+    exercises.forEach((ex) => {
+      if (!(ex.name in suggestions)) {
+        const history = getExerciseHistoryFromWorkouts(allWorkouts, ex.name)
+        newSuggestions[ex.name] = computeSuggestion(history)
+      }
+    })
+    if (Object.keys(newSuggestions).length > 0) {
+      setSuggestions((prev) => ({ ...prev, ...newSuggestions }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises.length, allWorkouts])
+
+  // ── Load session / template ──────────────────────────────────────────────────
   useEffect(() => {
     const existingSession = getWorkoutSession()
-    
+
     if (existingSession && !templateId) {
-      // Restore existing session
       setWorkoutName(existingSession.workoutName)
-      setExercises(existingSession.exercises)
+      setExercises(existingSession.exercises as Exercise[])
       setIsWorkoutActive(existingSession.isWorkoutActive)
       setWorkoutDuration(existingSession.workoutDuration)
-      
       if (existingSession.workoutStartTime) {
         setWorkoutStartTime(new Date(existingSession.workoutStartTime))
       }
-      
       toast.success("🔄 Resumed your workout session!")
       setSessionLoaded(true)
     } else if (templateId) {
-      // Clear existing session when loading a new template
       clearWorkoutSession()
-
-      // Check if it's a user template (MongoDB ObjectId) or a system template (numeric string)
       const isUserTemplate = /^[0-9a-f]{24}$/i.test(templateId)
 
       if (isUserTemplate) {
-        // Load user template from API (async IIFE inside sync useEffect)
         ;(async () => {
           try {
             const res = await fetch(`/api/templates/${templateId}`)
@@ -85,42 +121,57 @@ function LogWorkoutContent() {
               const userTemplate = await res.json()
               setWorkoutName(userTemplate.name)
               const templateExercises: Exercise[] = userTemplate.exercises.map(
-                (exercise: { id?: string; name: string; category: string; sets: Array<{ reps: number; weight: number }> }, index: number) => ({
+                (
+                  exercise: {
+                    name: string
+                    category: string
+                    sets: Array<{ reps: number; weight: number }>
+                  },
+                  index: number
+                ) => ({
                   id: `template-${index}-${Date.now()}`,
                   name: exercise.name,
                   category: exercise.category,
-                  sets: exercise.sets.length > 0
-                    ? exercise.sets.map((s) => ({ reps: s.reps, weight: s.weight, completed: false }))
-                    : [{ reps: 0, weight: 0, completed: false }],
+                  sets:
+                    exercise.sets.length > 0
+                      ? exercise.sets.map((s) => ({
+                          reps: s.reps,
+                          weight: s.weight,
+                          completed: false,
+                        }))
+                      : [{ reps: 0, weight: 0, completed: false }],
                 })
               )
               setExercises(templateExercises)
               setIsWorkoutActive(true)
-              toast.success(`📋 Loaded ${userTemplate.name} with ${userTemplate.exercises.length} exercises!`)
+              toast.success(
+                `📋 Loaded ${userTemplate.name} with ${userTemplate.exercises.length} exercises!`
+              )
             }
           } catch {
             toast.error("Failed to load template")
           }
           setSessionLoaded(true)
-        })();
+        })()
       } else {
-        // Load system template
-        const template = templates.find(t => t.id === templateId)
+        const template = templates.find((t) => t.id === templateId)
         if (template) {
           setWorkoutName(template.name)
-          const templateExercises: Exercise[] = template.exerciseList.map((exercise, index) => ({
-            id: `template-${index}-${Date.now()}`,
-            name: exercise.name,
-            category: exercise.category,
-            sets: Array(exercise.sets).fill(null).map(() => ({
-              reps: 0,
-              weight: 0,
-              completed: false
-            }))
-          }))
+          const templateExercises: Exercise[] = template.exerciseList.map(
+            (exercise, index) => ({
+              id: `template-${index}-${Date.now()}`,
+              name: exercise.name,
+              category: exercise.category,
+              sets: Array(exercise.sets)
+                .fill(null)
+                .map(() => ({ reps: 0, weight: 0, completed: false })),
+            })
+          )
           setExercises(templateExercises)
           setIsWorkoutActive(true)
-          toast.success(`📋 Loaded ${template.name} template with ${template.exerciseList.length} exercises!`)
+          toast.success(
+            `📋 Loaded ${template.name} template with ${template.exerciseList.length} exercises!`
+          )
         }
         setSessionLoaded(true)
       }
@@ -129,51 +180,41 @@ function LogWorkoutContent() {
     }
   }, [templateId])
 
-  // Auto-save session whenever state changes
+  // ── Auto-save session ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!sessionLoaded) return // Don't save until initial load is complete
-    
-    const sessionData = {
-      workoutName,
-      exercises,
-      isWorkoutActive,
-      workoutStartTime: workoutStartTime?.toISOString() || null,
-      workoutDuration,
-      templateId
-    }
-    
-    // Debounce auto-save to avoid too frequent saves
+    if (!sessionLoaded) return
     const timeoutId = setTimeout(() => {
-      saveSession(sessionData)
+      saveSession({
+        workoutName,
+        exercises,
+        isWorkoutActive,
+        workoutStartTime: workoutStartTime?.toISOString() || null,
+        workoutDuration,
+        templateId,
+      })
     }, 1000)
-    
     return () => clearTimeout(timeoutId)
   }, [workoutName, exercises, isWorkoutActive, workoutStartTime, workoutDuration, templateId, saveSession, sessionLoaded])
 
-  // Start workout timer when first exercise is added or timer is manually started
+  // ── Timer ────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isWorkoutActive && !workoutStartTime) {
-      setWorkoutStartTime(new Date())
-    }
+    if (isWorkoutActive && !workoutStartTime) setWorkoutStartTime(new Date())
   }, [isWorkoutActive, workoutStartTime])
 
-  // Update duration every second when workout is active
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
-    
     if (isWorkoutActive && workoutStartTime) {
       interval = setInterval(() => {
-        const now = new Date()
-        const duration = Math.floor((now.getTime() - workoutStartTime.getTime()) / 1000 / 60) // minutes
+        const duration = Math.floor(
+          (Date.now() - workoutStartTime.getTime()) / 1000 / 60
+        )
         setWorkoutDuration(duration)
       }, 1000)
     }
-    
-    return () => {
-      if (interval) clearInterval(interval)
-    }
+    return () => { if (interval) clearInterval(interval) }
   }, [isWorkoutActive, workoutStartTime])
 
+  // ── Exercise actions ─────────────────────────────────────────────────────────
   const addExercise = (exercise: { name: string; category: string }) => {
     const newExercise: Exercise = {
       id: Date.now().toString(),
@@ -181,54 +222,88 @@ function LogWorkoutContent() {
       category: exercise.category,
       sets: [{ reps: 0, weight: 0, completed: false }],
     }
-    setExercises([...exercises, newExercise])
+    setExercises((prev) => [...prev, newExercise])
     setShowExerciseSelector(false)
-    
-    // Auto-start workout when first exercise is added
-    if (exercises.length === 0) {
-      setIsWorkoutActive(true)
-    }
+    if (exercises.length === 0) setIsWorkoutActive(true)
   }
 
   const updateExercise = (exerciseId: string, updatedExercise: Exercise) => {
-    setExercises(exercises.map((ex) => (ex.id === exerciseId ? updatedExercise : ex)))
+    setExercises((prev) =>
+      prev.map((ex) => (ex.id === exerciseId ? updatedExercise : ex))
+    )
   }
 
   const removeExercise = (exerciseId: string) => {
-    setExercises(exercises.filter((ex) => ex.id !== exerciseId))
+    setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId))
   }
 
+  // ── Superset actions ─────────────────────────────────────────────────────────
+  const linkAsSuperset = (exerciseId: string) => {
+    setExercises((prev) => {
+      const idx = prev.findIndex((ex) => ex.id === exerciseId)
+      if (idx === -1 || idx >= prev.length - 1) return prev
+      const groupId = `ss-${Date.now()}`
+      return prev.map((ex, i) =>
+        i === idx || i === idx + 1 ? { ...ex, supersetGroup: groupId } : ex
+      )
+    })
+    toast.success("Superset created!")
+  }
+
+  const unlinkSuperset = (exerciseId: string) => {
+    setExercises((prev) => {
+      const ex = prev.find((e) => e.id === exerciseId)
+      if (!ex?.supersetGroup) return prev
+      const groupId = ex.supersetGroup
+      return prev.map((e) =>
+        e.supersetGroup === groupId ? { ...e, supersetGroup: undefined } : e
+      )
+    })
+  }
+
+  // ── Finish workout ───────────────────────────────────────────────────────────
   const finishWorkout = async () => {
     if (exercises.length === 0) {
       toast.error("Please add at least one exercise to finish the workout")
       return
     }
-
-    // Check if any sets are completed
-    const hasCompletedSets = exercises.some(ex => ex.sets.some(set => set.completed))
+    const hasCompletedSets = exercises.some((ex) =>
+      ex.sets.some((set) => set.completed)
+    )
     if (!hasCompletedSets) {
       toast.error("Please complete at least one set to finish the workout")
       return
     }
 
     try {
-      const completedExercises = exercises.map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        category: ex.category,
-        sets: ex.sets.filter(set => set.completed).map(set => ({
-          reps: set.reps,
-          weight: set.weight,
-          completed: set.completed,
-          restTime: 0 // Could be enhanced to track actual rest time
+      const completedExercises = exercises
+        .map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          category: ex.category,
+          supersetGroup: ex.supersetGroup,
+          sets: ex.sets
+            .filter((set) => set.completed)
+            .map((set) => ({
+              reps: set.reps,
+              weight: set.weight,
+              completed: set.completed,
+              estimated1RM: set.estimated1RM,
+              rpe: set.rpe,
+              restTime: 0,
+            })),
         }))
-      })).filter(ex => ex.sets.length > 0) // Only include exercises with completed sets
+        .filter((ex) => ex.sets.length > 0)
 
       const totalSets = completedExercises.reduce((sum, ex) => sum + ex.sets.length, 0)
-      const totalReps = completedExercises.reduce((sum, ex) => 
-        sum + ex.sets.reduce((setSum, set) => setSum + set.reps, 0), 0)
-      const totalWeight = completedExercises.reduce((sum, ex) => 
-        sum + ex.sets.reduce((setSum, set) => setSum + (set.weight * set.reps), 0), 0)
+      const totalReps = completedExercises.reduce(
+        (sum, ex) => sum + ex.sets.reduce((s, set) => s + set.reps, 0),
+        0
+      )
+      const totalWeight = completedExercises.reduce(
+        (sum, ex) => sum + ex.sets.reduce((s, set) => s + set.weight * set.reps, 0),
+        0
+      )
 
       const workout: Workout = {
         id: Date.now().toString(),
@@ -238,10 +313,10 @@ function LogWorkoutContent() {
         exercises: completedExercises,
         totalSets,
         totalReps,
-        totalWeight
+        totalWeight,
       }
 
-      // Detect new PRs (compare against PRs loaded at session start)
+      // PR detection using PRs loaded at session start
       const newPRNames: string[] = []
       completedExercises.forEach((ex) => {
         const bestSet = ex.sets.reduce(
@@ -251,7 +326,7 @@ function LogWorkoutContent() {
             (set.weight === best.weight && set.reps > best.reps)
               ? set
               : best,
-          null as typeof ex.sets[0] | null
+          null as (typeof ex.sets)[0] | null
         )
         if (!bestSet) return
         const prev = existingPRs[ex.name]
@@ -265,14 +340,13 @@ function LogWorkoutContent() {
       await saveWorkout(workout)
       clearWorkoutSession()
 
-      // Find top exercise by total volume (weight × reps)
       const topExercise = completedExercises.reduce((top, ex) => {
         const vol = ex.sets.reduce((s, set) => s + set.weight * set.reps, 0)
         const topVol = top.sets.reduce((s, set) => s + set.weight * set.reps, 0)
         return vol > topVol ? ex : top
       }, completedExercises[0])
 
-      const searchParams = new URLSearchParams({
+      const params = new URLSearchParams({
         name: workout.name,
         sets: String(totalSets),
         reps: String(totalReps),
@@ -284,7 +358,7 @@ function LogWorkoutContent() {
         prCount: String(newPRNames.length),
         prNames: newPRNames.join(","),
       })
-      router.push(`/workout-complete?${searchParams}`)
+      router.push(`/workout-complete?${params}`)
     } catch (error) {
       console.error("Error saving workout:", error)
       toast.error("Failed to save workout. Please try again.")
@@ -293,9 +367,11 @@ function LogWorkoutContent() {
 
   const cancelWorkout = () => {
     if (exercises.length > 0) {
-      const hasData = exercises.some(ex => ex.sets.some(set => set.reps > 0 || set.weight > 0))
+      const hasData = exercises.some((ex) =>
+        ex.sets.some((set) => set.reps > 0 || set.weight > 0)
+      )
       if (hasData) {
-        if (confirm("⚠️ Are you sure you want to cancel this workout? All progress will be lost.")) {
+        if (confirm("⚠️ Are you sure you want to cancel? All progress will be lost.")) {
           clearWorkoutSession()
           router.push("/")
         }
@@ -310,18 +386,53 @@ function LogWorkoutContent() {
   }
 
   if (showExerciseSelector) {
-    return <ExerciseSelector onSelect={addExercise} onClose={() => setShowExerciseSelector(false)} />
+    return (
+      <ExerciseSelector
+        onSelect={addExercise}
+        onClose={() => setShowExerciseSelector(false)}
+      />
+    )
   }
 
   const totalSets = exercises.reduce((acc, ex) => acc + ex.sets.length, 0)
-  const completedSets = exercises.reduce((acc, ex) => acc + ex.sets.filter((set) => set.completed).length, 0)
-  const progressPercentage = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
+  const completedSets = exercises.reduce(
+    (acc, ex) => acc + ex.sets.filter((set) => set.completed).length,
+    0
+  )
+  const progressPercentage =
+    totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
 
+  // ── Helpers for rendering ────────────────────────────────────────────────────
+
+  /** Get the partner name for a superset exercise */
+  const getSupersetPartner = (ex: Exercise): string | undefined => {
+    if (!ex.supersetGroup) return undefined
+    const partner = exercises.find(
+      (e) => e.supersetGroup === ex.supersetGroup && e.id !== ex.id
+    )
+    return partner?.name
+  }
+
+  /** Whether to show the bracket between index i and i+1 */
+  const showBracketAfter = (index: number): boolean => {
+    const a = exercises[index]
+    const b = exercises[index + 1]
+    return (
+      !!a?.supersetGroup &&
+      !!b?.supersetGroup &&
+      a.supersetGroup === b.supersetGroup
+    )
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 pt-12 pb-6">
+      <header
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="container mx-auto px-4 pt-4 pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <BackButton onClick={cancelWorkout} />
@@ -333,7 +444,7 @@ function LogWorkoutContent() {
                   placeholder="Workout name"
                 />
                 <p className="text-sm text-muted-foreground">
-                  {exercises.length} exercise{exercises.length !== 1 ? 's' : ''} • {totalSets} sets
+                  {exercises.length} exercise{exercises.length !== 1 ? "s" : ""} • {totalSets} sets
                 </p>
               </div>
             </div>
@@ -345,7 +456,11 @@ function LogWorkoutContent() {
                   size="sm"
                   onClick={() => setIsWorkoutActive(!isWorkoutActive)}
                 >
-                  {isWorkoutActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {isWorkoutActive ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
                 </Button>
               )}
             </div>
@@ -355,6 +470,7 @@ function LogWorkoutContent() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Progress card */}
         {exercises.length > 0 && (
           <Card className="p-4 bg-card border-border">
             <div className="flex items-center justify-between">
@@ -369,30 +485,46 @@ function LogWorkoutContent() {
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-primary">{progressPercentage}%</p>
-              </div>
+              <p className="text-2xl font-bold text-primary">{progressPercentage}%</p>
             </div>
           </Card>
         )}
 
-        {/* Exercises */}
+        {/* Exercises + superset brackets */}
         {exercises.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-0">
             {exercises.map((exercise, index) => (
-              <ExerciseLogger
-                key={exercise.id}
-                exercise={exercise}
-                exerciseNumber={index + 1}
-                onUpdate={(updatedExercise) => updateExercise(exercise.id, updatedExercise)}
-                onRemove={() => removeExercise(exercise.id)}
-                personalRecord={existingPRs[exercise.name]}
-              />
+              <div key={exercise.id}>
+                <div className="mb-3">
+                  <ExerciseLogger
+                    exercise={exercise}
+                    exerciseNumber={index + 1}
+                    onUpdate={(updated) => updateExercise(exercise.id, updated)}
+                    onRemove={() => removeExercise(exercise.id)}
+                    personalRecord={existingPRs[exercise.name]}
+                    suggestion={suggestions[exercise.name]}
+                    supersetPartnerName={getSupersetPartner(exercise)}
+                    canLinkSuperset={
+                      !exercise.supersetGroup && index < exercises.length - 1
+                    }
+                    onLinkSuperset={() => linkAsSuperset(exercise.id)}
+                    onUnlinkSuperset={() => unlinkSuperset(exercise.id)}
+                  />
+                </div>
+
+                {/* Superset bracket between this and the next exercise */}
+                {showBracketAfter(index) && (
+                  <SupersetBracket
+                    topName={exercise.name}
+                    bottomName={exercises[index + 1].name}
+                  />
+                )}
+              </div>
             ))}
           </div>
         )}
 
-        {/* Add Exercise Button */}
+        {/* Add Exercise */}
         <Button
           onClick={() => setShowExerciseSelector(true)}
           variant="outline"
@@ -422,14 +554,22 @@ function LogWorkoutContent() {
 
 export default function LogWorkoutPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Image src="/fittracker-app-icon.png" alt="FitTracker" width={40} height={40} className="mx-auto mb-2 rounded-xl animate-pulse" />
-          <p className="text-muted-foreground">Loading workout...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Image
+              src="/fittracker-app-icon.png"
+              alt="FitTracker"
+              width={40}
+              height={40}
+              className="mx-auto mb-2 rounded-xl animate-pulse"
+            />
+            <p className="text-muted-foreground">Loading workout...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <LogWorkoutContent />
     </Suspense>
   )

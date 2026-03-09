@@ -15,6 +15,8 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { PlateauAlertCard } from "@/components/plateau-alert-card"
+import { ReadinessScoreCard } from "@/components/readiness-score-card"
 import {
   getInsight,
   getAICoachTip,
@@ -94,8 +96,8 @@ export default function HomePage() {
       <OfflineIndicator />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="px-5 pt-12 pb-5">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="px-5 pt-4 pb-5">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -224,6 +226,9 @@ export default function HomePage() {
         ) : (
           /* ── Returning user dashboard ── */
           <div className="space-y-6">
+            {/* Readiness score */}
+            <ReadinessScoreCard />
+
             {/* Stats */}
             <WorkoutStats />
 
@@ -254,6 +259,9 @@ export default function HomePage() {
 
             {/* Templates */}
             <WorkoutTemplates />
+
+            {/* Plateau alert */}
+            <PlateauAlertCard />
 
             {/* AI Coach tip */}
             {aiCoachTip && (

@@ -8,7 +8,10 @@ interface WorkoutSessionExercise {
     reps: number
     weight: number
     completed: boolean
+    estimated1RM?: number
+    rpe?: number
   }>
+  supersetGroup?: string
 }
 
 interface WorkoutSession {

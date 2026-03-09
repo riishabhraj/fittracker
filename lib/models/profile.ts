@@ -20,6 +20,7 @@ const ProfileSchema = new Schema(
       enum: ["gym", "home_gym", "dumbbells"],
     },
     onboardingCompleted: { type: Boolean, default: false },
+    subjectiveEnergy: { type: Number, min: 1, max: 10 },
   },
   { timestamps: true }
 )

@@ -1,4 +1,5 @@
 // Shared fitness utilities — used by onboarding, dashboard, and workout-complete pages
+import type { Workout } from "./workout-storage"
 
 export type Goal = "muscle" | "fat_loss" | "strength" | "fitness"
 export type Experience = "beginner" | "intermediate" | "advanced"
@@ -220,6 +221,47 @@ const SCHEDULE: Record<number, string[]> = {
   4: ["Upper A", "Lower A", "Upper B", "Lower B"],
   5: ["Push", "Pull", "Legs", "Upper A", "Lower A"],
   6: ["Push A", "Pull A", "Legs A", "Push B", "Pull B", "Legs B"],
+}
+
+// ─── Push / Pull / Legs volume analytics ─────────────────────────────────────
+
+export type PPLCategory = "Push" | "Pull" | "Legs" | "Other"
+
+export function getPPLCategory(exerciseCategory: string): PPLCategory {
+  const c = exerciseCategory.toLowerCase()
+  if (c === "chest" || c === "shoulders" || c === "triceps") return "Push"
+  if (c === "back" || c === "biceps") return "Pull"
+  if (c === "legs" || c === "glutes" || c === "calves") return "Legs"
+  return "Other"
+}
+
+export interface PPLVolumes {
+  Push: number
+  Pull: number
+  Legs: number
+  Other: number
+}
+
+/**
+ * Sum completed-set volume (weight × reps) per PPL category
+ * over the last `days` days.
+ */
+export function computePPLVolumes(workouts: Workout[], days = 30): PPLVolumes {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+  const totals: PPLVolumes = { Push: 0, Pull: 0, Legs: 0, Other: 0 }
+
+  for (const workout of workouts) {
+    if (new Date(workout.date).getTime() < cutoff) continue
+    for (const exercise of workout.exercises) {
+      const cat = getPPLCategory(exercise.category ?? "")
+      const vol = exercise.sets
+        .filter((s) => s.completed && s.weight > 0 && s.reps > 0)
+        .reduce((sum, s) => sum + s.weight * s.reps, 0)
+      totals[cat] += vol
+    }
+  }
+
+  return totals
 }
 
 export function getPersonalizedTemplates(profile: Partial<FitnessProfile>): TemplateSpec[] {

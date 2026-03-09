@@ -5,14 +5,19 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Minus, Check, MoreVertical, Trophy } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Minus, Check, MoreVertical, Trophy, ChevronDown, ChevronUp, Link, Unlink } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { RPEPicker } from "@/components/rpe-picker"
+import { calculateEpley1RM } from "@/lib/one-rm"
+import type { SuggestedSet } from "@/lib/progressive-overload"
 import { toast } from "sonner"
 
 interface Set {
   reps: number
   weight: number
   completed: boolean
+  estimated1RM?: number
+  rpe?: number
 }
 
 interface Exercise {
@@ -20,6 +25,7 @@ interface Exercise {
   name: string
   category: string
   sets: Set[]
+  supersetGroup?: string
 }
 
 export interface PersonalRecord {
@@ -34,6 +40,14 @@ interface ExerciseLoggerProps {
   onUpdate: (exercise: Exercise) => void
   onRemove: () => void
   personalRecord?: PersonalRecord
+  /** Progressive overload suggestion for the next set */
+  suggestion?: SuggestedSet | null
+  /** Name of the paired superset exercise (if any) */
+  supersetPartnerName?: string
+  /** Whether this exercise can be linked to the next one below it */
+  canLinkSuperset?: boolean
+  onLinkSuperset?: () => void
+  onUnlinkSuperset?: () => void
 }
 
 export function ExerciseLogger({
@@ -42,11 +56,17 @@ export function ExerciseLogger({
   onUpdate,
   onRemove,
   personalRecord,
+  suggestion,
+  supersetPartnerName,
+  canLinkSuperset,
+  onLinkSuperset,
+  onUnlinkSuperset,
 }: ExerciseLoggerProps) {
   const [restTimer, setRestTimer] = useState<number | null>(null)
+  const [supersetCue, setSupersetCue] = useState(false)
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Track which set indices hit a PR this session (for the badge)
   const [prSetIndices, setPrSetIndices] = useState<Set<number>>(new Set())
+  const [rpeOpenIndices, setRpeOpenIndices] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     return () => {
@@ -54,8 +74,14 @@ export function ExerciseLogger({
     }
   }, [])
 
-  const updateSet = (setIndex: number, field: "reps" | "weight" | "completed", value: number | boolean) => {
-    const updatedSets = exercise.sets.map((set, index) => (index === setIndex ? { ...set, [field]: value } : set))
+  const updateSet = (
+    setIndex: number,
+    field: "reps" | "weight" | "completed" | "rpe" | "estimated1RM",
+    value: number | boolean
+  ) => {
+    const updatedSets = exercise.sets.map((set, index) =>
+      index === setIndex ? { ...set, [field]: value } : set
+    )
     onUpdate({ ...exercise, sets: updatedSets })
   }
 
@@ -73,8 +99,12 @@ export function ExerciseLogger({
     if (exercise.sets.length > 1) {
       const updatedSets = exercise.sets.filter((_, index) => index !== setIndex)
       onUpdate({ ...exercise, sets: updatedSets })
-      // Remove PR badge for removed set
       setPrSetIndices((prev) => {
+        const next = new Set(prev)
+        next.delete(setIndex)
+        return next
+      })
+      setRpeOpenIndices((prev) => {
         const next = new Set(prev)
         next.delete(setIndex)
         return next
@@ -82,9 +112,22 @@ export function ExerciseLogger({
     }
   }
 
+  // Apply suggestion to the first incomplete set
+  const applySuggestion = () => {
+    if (!suggestion) return
+    const firstIncompleteIdx = exercise.sets.findIndex((s) => !s.completed)
+    if (firstIncompleteIdx === -1) return
+    const updatedSets = exercise.sets.map((s, i) =>
+      i === firstIncompleteIdx
+        ? { ...s, weight: suggestion.weight, reps: suggestion.reps }
+        : s
+    )
+    onUpdate({ ...exercise, sets: updatedSets })
+  }
+
   function isNewPR(set: Set): boolean {
     if (!set.reps || !set.weight) return false
-    if (!personalRecord) return false // No previous PR — technically everything is a PR, but only flag weight-based PRs
+    if (!personalRecord) return false
     return (
       set.weight > personalRecord.weight ||
       (set.weight === personalRecord.weight && set.reps > personalRecord.reps)
@@ -93,7 +136,16 @@ export function ExerciseLogger({
 
   const completeSet = (setIndex: number) => {
     const set = exercise.sets[setIndex]
-    updateSet(setIndex, "completed", true)
+
+    const orm =
+      set.weight > 0 && set.reps > 0
+        ? calculateEpley1RM(set.weight, set.reps)
+        : undefined
+
+    const updatedSets = exercise.sets.map((s, i) =>
+      i === setIndex ? { ...s, completed: true, estimated1RM: orm } : s
+    )
+    onUpdate({ ...exercise, sets: updatedSets })
 
     // PR detection
     if (isNewPR(set)) {
@@ -103,7 +155,17 @@ export function ExerciseLogger({
       })
     }
 
-    // Rest timer
+    // Auto-open RPE picker
+    setRpeOpenIndices((prev) => new Set([...prev, setIndex]))
+
+    // Superset: show partner cue instead of rest timer
+    if (supersetPartnerName) {
+      setSupersetCue(true)
+      setTimeout(() => setSupersetCue(false), 4000)
+      return
+    }
+
+    // Normal rest timer
     if (restTimerRef.current) clearInterval(restTimerRef.current)
     setRestTimer(90)
     restTimerRef.current = setInterval(() => {
@@ -118,15 +180,38 @@ export function ExerciseLogger({
     }, 1000)
   }
 
+  const toggleRPE = (setIndex: number) => {
+    setRpeOpenIndices((prev) => {
+      const next = new Set(prev)
+      if (next.has(setIndex)) next.delete(setIndex)
+      else next.add(setIndex)
+      return next
+    })
+  }
+
+  // Which sets haven't been completed yet (for showing the suggestion)
+  const firstIncompleteIdx = exercise.sets.findIndex((s) => !s.completed)
+  const showSuggestion = suggestion && firstIncompleteIdx !== -1
+
   return (
-    <Card className="p-4 bg-card border-border">
+    <Card className={`p-4 bg-card border-border ${supersetPartnerName ? "border-primary/30" : ""}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
             <span className="text-sm font-semibold text-primary">{exerciseNumber}</span>
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">{exercise.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-foreground">{exercise.name}</h3>
+              {supersetPartnerName && (
+                <span
+                  className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: "hsl(80 100% 50% / 0.15)", color: "hsl(80 100% 50%)" }}
+                >
+                  SS
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-0.5">
               <Badge variant="secondary" className="text-xs">
                 {exercise.category}
@@ -147,6 +232,20 @@ export function ExerciseLogger({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {/* Superset actions */}
+            {!supersetPartnerName && canLinkSuperset && (
+              <DropdownMenuItem onClick={onLinkSuperset} className="gap-2">
+                <Link className="h-4 w-4" />
+                Link as Superset
+              </DropdownMenuItem>
+            )}
+            {supersetPartnerName && (
+              <DropdownMenuItem onClick={onUnlinkSuperset} className="gap-2">
+                <Unlink className="h-4 w-4" />
+                Unlink Superset
+              </DropdownMenuItem>
+            )}
+            {(canLinkSuperset || supersetPartnerName) && <DropdownMenuSeparator />}
             <DropdownMenuItem onClick={onRemove} className="text-destructive">
               Remove Exercise
             </DropdownMenuItem>
@@ -154,8 +253,48 @@ export function ExerciseLogger({
         </DropdownMenu>
       </div>
 
-      {/* Rest Timer */}
-      {restTimer && (
+      {/* Progressive overload suggestion chip */}
+      {showSuggestion && (
+        <div
+          className="flex items-center justify-between px-3 py-2 rounded-xl mb-3 gap-3"
+          style={{ backgroundColor: "hsl(80 100% 50% / 0.08)", border: "1px solid hsl(80 100% 50% / 0.2)" }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-semibold shrink-0" style={{ color: "hsl(80 100% 50%)" }}>
+              {suggestion!.reason === "first_session" ? "Last time" : "Suggested"}
+            </span>
+            <span className="text-xs text-foreground font-medium truncate">
+              {suggestion!.label}
+            </span>
+          </div>
+          {suggestion!.reason !== "first_session" && (
+            <Button
+              size="sm"
+              className="h-6 px-2.5 text-xs shrink-0"
+              style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+              onClick={applySuggestion}
+            >
+              Apply
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Superset partner cue */}
+      {supersetCue && supersetPartnerName && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+          style={{ backgroundColor: "hsl(80 100% 50% / 0.1)", border: "1px solid hsl(80 100% 50% / 0.3)" }}
+        >
+          <span className="text-xs font-semibold" style={{ color: "hsl(80 100% 50%)" }}>
+            ↓ Now do:
+          </span>
+          <span className="text-xs text-foreground font-medium">{supersetPartnerName}</span>
+        </div>
+      )}
+
+      {/* Rest Timer (non-superset only) */}
+      {restTimer && !supersetPartnerName && (
         <div className="mb-4 p-3 bg-primary/10 rounded-lg text-center">
           <p className="text-sm text-primary font-medium">Rest Time</p>
           <p className="text-2xl font-bold text-primary">
@@ -182,77 +321,126 @@ export function ExerciseLogger({
       </div>
 
       {/* Sets */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         {exercise.sets.map((set, setIndex) => (
-          <div
-            key={setIndex}
-            className={`grid grid-cols-5 gap-2 items-center rounded-lg transition-colors ${
-              prSetIndices.has(setIndex) ? "bg-yellow-500/8" : ""
-            }`}
-          >
-            <div className="text-center text-sm font-medium text-foreground flex items-center justify-center gap-1">
-              {setIndex + 1}
-              {prSetIndices.has(setIndex) && (
-                <Trophy className="h-3 w-3 text-yellow-500" />
-              )}
+          <div key={setIndex}>
+            {/* Main set row */}
+            <div
+              className={`grid grid-cols-5 gap-2 items-center rounded-lg transition-colors ${
+                prSetIndices.has(setIndex) ? "bg-yellow-500/8" : ""
+              }`}
+            >
+              <div className="text-center text-sm font-medium text-foreground flex items-center justify-center gap-1">
+                {setIndex + 1}
+                {prSetIndices.has(setIndex) && (
+                  <Trophy className="h-3 w-3 text-yellow-500" />
+                )}
+              </div>
+
+              <Input
+                type="number"
+                value={set.reps || ""}
+                onChange={(e) => updateSet(setIndex, "reps", Number.parseInt(e.target.value) || 0)}
+                className="text-center h-8"
+                disabled={set.completed}
+              />
+
+              <Input
+                type="number"
+                value={set.weight || ""}
+                onChange={(e) => updateSet(setIndex, "weight", Number.parseInt(e.target.value) || 0)}
+                className="text-center h-8"
+                disabled={set.completed}
+              />
+
+              {/* Best PR column */}
+              <div className="text-center text-sm text-muted-foreground">
+                {personalRecord ? `${personalRecord.weight}×${personalRecord.reps}` : "—"}
+              </div>
+
+              <div className="flex justify-center">
+                {set.completed ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`h-8 w-8 p-0 ${
+                      prSetIndices.has(setIndex)
+                        ? "text-yellow-500 hover:text-yellow-600"
+                        : "text-green-500 hover:text-green-600"
+                    }`}
+                    onClick={() => updateSet(setIndex, "completed", false)}
+                  >
+                    {prSetIndices.has(setIndex) ? (
+                      <Trophy className="h-4 w-4" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 hover:text-primary"
+                    onClick={() => completeSet(setIndex)}
+                    disabled={!set.reps || !set.weight}
+                  >
+                    <div className="w-4 h-4 border-2 border-muted-foreground rounded" />
+                  </Button>
+                )}
+              </div>
             </div>
 
-            <Input
-              type="number"
-              value={set.reps || ""}
-              onChange={(e) => updateSet(setIndex, "reps", Number.parseInt(e.target.value) || 0)}
-              className="text-center h-8"
-              disabled={set.completed}
-            />
-
-            <Input
-              type="number"
-              value={set.weight || ""}
-              onChange={(e) => updateSet(setIndex, "weight", Number.parseInt(e.target.value) || 0)}
-              className="text-center h-8"
-              disabled={set.completed}
-            />
-
-            {/* Best PR column (replaces "Previous" which was showing the prior set in the same session) */}
-            <div className="text-center text-sm text-muted-foreground">
-              {personalRecord
-                ? `${personalRecord.weight}×${personalRecord.reps}`
-                : "—"}
-            </div>
-
-            <div className="flex justify-center">
-              {set.completed ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`h-8 w-8 p-0 ${prSetIndices.has(setIndex) ? "text-yellow-500 hover:text-yellow-600" : "text-green-500 hover:text-green-600"}`}
-                  onClick={() => updateSet(setIndex, "completed", false)}
-                >
-                  {prSetIndices.has(setIndex) ? (
-                    <Trophy className="h-4 w-4" />
+            {/* Post-completion row: 1RM + RPE */}
+            {set.completed && (
+              <div className="ml-1 mb-2 space-y-0.5">
+                <div className="flex items-center justify-between px-1 pt-1">
+                  {set.estimated1RM ? (
+                    <span className="text-xs text-muted-foreground">
+                      ~1RM:{" "}
+                      <span className="font-semibold text-primary">{set.estimated1RM} kg</span>
+                    </span>
                   ) : (
-                    <Check className="h-4 w-4" />
+                    <span />
                   )}
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 hover:text-primary"
-                  onClick={() => completeSet(setIndex)}
-                  disabled={!set.reps || !set.weight}
-                >
-                  <div className="w-4 h-4 border-2 border-muted-foreground rounded" />
-                </Button>
-              )}
-            </div>
+                  <button
+                    onClick={() => toggleRPE(setIndex)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {set.rpe !== undefined ? (
+                      <span>
+                        RPE <span className="font-semibold text-foreground">{set.rpe}</span>
+                      </span>
+                    ) : (
+                      <span>Rate effort</span>
+                    )}
+                    {rpeOpenIndices.has(setIndex) ? (
+                      <ChevronUp className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+
+                {rpeOpenIndices.has(setIndex) && (
+                  <RPEPicker
+                    value={set.rpe}
+                    onChange={(v) => updateSet(setIndex, "rpe", v)}
+                  />
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       {/* Add/Remove Set Buttons */}
       <div className="flex justify-center space-x-2 mt-4">
-        <Button size="sm" variant="outline" onClick={addSet} className="flex items-center space-x-1 bg-transparent">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={addSet}
+          className="flex items-center space-x-1 bg-transparent"
+        >
           <Plus className="h-3 w-3" />
           <span>Add Set</span>
         </Button>

@@ -131,7 +131,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="px-5 pt-12 pb-4">
+      <div className="px-5 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}>
         <div className="flex items-center justify-between mb-6">
           {step > 0 && step < 5 ? (
             <button

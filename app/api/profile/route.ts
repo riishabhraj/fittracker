@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     workoutDaysPerWeek,
     equipment,
     onboardingCompleted,
+    subjectiveEnergy,
   } = body
 
   await connectDB()
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
         ...(workoutDaysPerWeek !== undefined && { workoutDaysPerWeek }),
         ...(equipment !== undefined && { equipment }),
         ...(onboardingCompleted !== undefined && { onboardingCompleted }),
+        ...(subjectiveEnergy !== undefined && { subjectiveEnergy }),
       },
     },
     { upsert: true, new: true, runValidators: true }
