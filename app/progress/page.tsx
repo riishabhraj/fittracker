@@ -13,7 +13,6 @@ import { BodyMeasurements } from "@/components/body-measurements"
 import { AchievementBadges } from "@/components/achievement-badges"
 import { ProgressOverview } from "@/components/progress-overview"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import { exportWorkoutData } from "@/lib/workout-storage"
 import { exportGoalData } from "@/lib/goal-storage"
@@ -77,7 +76,6 @@ export default function ProgressPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <ThemeToggle />
               <Button variant="outline" size="sm" onClick={handleExportData}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Data
@@ -88,7 +86,7 @@ export default function ProgressPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-24">
         {/* Active Workout Session Notification */}
         <WorkoutSessionNotification className="mb-6" />
         

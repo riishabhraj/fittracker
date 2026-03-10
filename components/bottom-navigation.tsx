@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, TrendingUp, Target, History, Plus } from "lucide-react"
+import { Home, TrendingUp, User, History, Plus } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { icon: Home,       label: "Home",     href: "/" },
   { icon: History,    label: "Workouts", href: "/workouts" },
   { icon: TrendingUp, label: "Progress", href: "/progress" },
-  { icon: Target,     label: "Goals",    href: "/goals" },
+  { icon: User,       label: "Profile",  href: "/profile" },
 ]
 
 export function BottomNavigation() {

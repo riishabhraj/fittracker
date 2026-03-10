@@ -21,6 +21,14 @@ const ProfileSchema = new Schema(
     },
     onboardingCompleted: { type: Boolean, default: false },
     subjectiveEnergy: { type: Number, min: 1, max: 10 },
+    weightHistory: [
+      {
+        date: { type: Date, required: true },
+        weight: { type: Number, required: true },
+        bodyFat: { type: Number },
+        _id: false,
+      },
+    ],
   },
   { timestamps: true }
 )

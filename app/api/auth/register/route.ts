@@ -28,9 +28,14 @@ export async function POST(req: NextRequest) {
     await connectDB()
 
     // Check if email already taken
-    const existing = await User.findOne({ email: email.toLowerCase().trim() })
+    const existing = await User.findOne({ email: email.toLowerCase().trim() }).select("+password")
     if (existing) {
-      return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 })
+      const isOAuth = !existing.password
+      return NextResponse.json({
+        error: isOAuth
+          ? "This email is linked to a Google account. Please sign in with Google instead."
+          : "An account with this email already exists.",
+      }, { status: 409 })
     }
 
     const hashed = await bcrypt.hash(password, 10)

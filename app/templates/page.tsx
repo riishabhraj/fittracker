@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Dumbbell, Heart, Zap, Target, Clock, Users, TrendingUp, Eye, Play, Trash2, BookmarkCheck } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -536,7 +535,6 @@ export default function TemplatesPage() {
                 <p className="text-sm text-muted-foreground">Start a workout in seconds</p>
               </div>
             </div>
-            <ThemeToggle />
           </div>
 
           {/* Tabs */}
@@ -567,7 +565,7 @@ export default function TemplatesPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-24">
         {activeTab === "system" ? <SystemTemplates /> : <MyTemplates />}
       </main>
     </div>

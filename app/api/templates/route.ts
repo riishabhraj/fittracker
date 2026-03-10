@@ -19,7 +19,13 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await req.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: { name?: string; exercises?: any[] }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+  }
   const { name, exercises } = body
 
   if (!name?.trim()) {

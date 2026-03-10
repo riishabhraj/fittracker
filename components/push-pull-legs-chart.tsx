@@ -48,10 +48,10 @@ export function PushPullLegsChart() {
 
   useEffect(() => {
     setLoading(true)
-    getWorkouts().then((workouts) => {
-      setVolumes(computePPLVolumes(workouts, days))
-      setLoading(false)
-    })
+    getWorkouts()
+      .then((workouts) => setVolumes(computePPLVolumes(workouts, days)))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [days])
 
   if (loading) {

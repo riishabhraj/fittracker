@@ -1,4 +1,4 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import bcrypt from "bcryptjs"
@@ -6,6 +6,10 @@ import clientPromise from "@/lib/mongodb"
 import connectDB from "@/lib/mongoose"
 import { User } from "@/lib/models/user"
 import authConfig from "./auth.config"
+
+class OAuthAccountError extends CredentialsSignin {
+  code = "OAuthAccount"
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -25,7 +29,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await connectDB()
         // `select("+password")` overrides the `select: false` on the schema field
         const user = await User.findOne({ email }).select("+password")
-        if (!user?.password) return null // OAuth-only account has no password
+        if (!user) return null
+        if (!user.password) throw new OAuthAccountError() // Google-only account
 
         const valid = await bcrypt.compare(password, user.password)
         if (!valid) return null

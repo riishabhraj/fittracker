@@ -52,6 +52,7 @@ function LogWorkoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const templateId = searchParams.get("template")
+  const source = searchParams.get("source")
   const { saveSession } = useWorkoutSessionAutoSave()
 
   const [workoutName, setWorkoutName] = useState("New Workout")
@@ -97,6 +98,36 @@ function LogWorkoutContent() {
 
   // ── Load session / template ──────────────────────────────────────────────────
   useEffect(() => {
+    // ── AI-generated workout from /generate-workout ──────────────────────────
+    if (source === "ai") {
+      clearWorkoutSession()
+      try {
+        const raw = sessionStorage.getItem("fittracker_ai_workout")
+        if (raw) {
+          sessionStorage.removeItem("fittracker_ai_workout")
+          const aiWorkout = JSON.parse(raw) as { workoutName: string; exercises: Array<{ name: string; category: string; sets: number; reps: number }> }
+          setWorkoutName(aiWorkout.workoutName)
+          const aiExercises: Exercise[] = aiWorkout.exercises.map((ex, i) => ({
+            id: `ai-${i}-${Date.now()}`,
+            name: ex.name ?? "Exercise",
+            category: ex.category ?? "Other",
+            sets: Array(Math.max(1, Number(ex.sets) || 3)).fill(null).map(() => ({
+              reps: Math.max(1, Number(ex.reps) || 10),
+              weight: 0,
+              completed: false,
+            })),
+          }))
+          setExercises(aiExercises)
+          setIsWorkoutActive(true)
+          toast.success(`✨ ${aiWorkout.workoutName} loaded!`)
+        }
+      } catch {
+        toast.error("Failed to load AI workout.")
+      }
+      setSessionLoaded(true)
+      return
+    }
+
     const existingSession = getWorkoutSession()
 
     if (existingSession && !templateId) {
@@ -469,7 +500,7 @@ function LogWorkoutContent() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 pb-24 space-y-6">
         {/* Progress card */}
         {exercises.length > 0 && (
           <Card className="p-4 bg-card border-border">

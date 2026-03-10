@@ -1,7 +1,6 @@
 'use client'
 
 import { Card } from "@/components/ui/card"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import { Shield, Database, Eye, Lock, Mail, Calendar } from "lucide-react"
 
@@ -21,7 +20,6 @@ export default function PrivacyPolicyPage() {
                 <p className="text-sm text-muted-foreground">How we protect your fitness data</p>
               </div>
             </div>
-            <ThemeToggle />
           </div>
         </div>
       </header>

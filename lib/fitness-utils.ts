@@ -223,6 +223,20 @@ const SCHEDULE: Record<number, string[]> = {
   6: ["Push A", "Pull A", "Legs A", "Push B", "Pull B", "Legs B"],
 }
 
+// ─── BMI helpers ─────────────────────────────────────────────────────────────
+
+export function computeBMI(weightKg: number, heightCm: number): number {
+  if (!weightKg || !heightCm) return 0
+  return Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10
+}
+
+export function getBMICategory(bmi: number): { label: string; color: string } {
+  if (bmi < 18.5) return { label: "Underweight", color: "#60a5fa" }
+  if (bmi < 25)   return { label: "Normal",      color: "#4ade80" }
+  if (bmi < 30)   return { label: "Overweight",  color: "#fbbf24" }
+  return                  { label: "Obese",       color: "#f87171" }
+}
+
 // ─── Push / Pull / Legs volume analytics ─────────────────────────────────────
 
 export type PPLCategory = "Push" | "Pull" | "Legs" | "Other"

@@ -49,14 +49,19 @@ export function ReadinessScoreCard() {
   // Load initial energy from profile + compute score
   useEffect(() => {
     const init = async () => {
-      const [workouts, profileRes] = await Promise.all([
-        getWorkouts(),
-        fetch("/api/profile").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ])
-      const initialEnergy = profileRes?.subjectiveEnergy ?? 7
-      setEnergy(initialEnergy)
-      setResult(computeReadinessScore({ workouts, subjectiveEnergy: initialEnergy }))
-      setLoading(false)
+      try {
+        const [workouts, profileRes] = await Promise.all([
+          getWorkouts(),
+          fetch("/api/profile").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        ])
+        const initialEnergy = profileRes?.subjectiveEnergy ?? 7
+        setEnergy(initialEnergy)
+        setResult(computeReadinessScore({ workouts, subjectiveEnergy: initialEnergy }))
+      } catch {
+        // Silently fail — card simply won't render
+      } finally {
+        setLoading(false)
+      }
     }
     init()
   }, [])
@@ -64,8 +69,12 @@ export function ReadinessScoreCard() {
   const handleEnergyChange = async (val: number) => {
     setEnergy(val)
     // Recompute score immediately (optimistic)
-    const workouts = await getWorkouts()
-    setResult(computeReadinessScore({ workouts, subjectiveEnergy: val }))
+    try {
+      const workouts = await getWorkouts()
+      setResult(computeReadinessScore({ workouts, subjectiveEnergy: val }))
+    } catch {
+      // keep current result if fetch fails
+    }
 
     // Debounce the profile save
     if (debounceRef.current) clearTimeout(debounceRef.current)

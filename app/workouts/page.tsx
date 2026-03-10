@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Calendar, Clock, TrendingUp, Play, BookmarkPlus } from "lucide-react"
 import Image from "next/image"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { BackButton } from "@/components/back-button"
 import Link from "next/link"
 import { getWorkouts } from "@/lib/workout-storage"
@@ -217,13 +216,12 @@ export default function WorkoutsPage() {
                 <p className="text-sm text-muted-foreground">View all your completed workouts</p>
               </div>
             </div>
-            <ThemeToggle />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 pb-24 space-y-6">
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
           {filters.map((filter) => (

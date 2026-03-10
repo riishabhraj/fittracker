@@ -16,9 +16,9 @@ export function PlateauAlertCard() {
   const [plateaus, setPlateaus] = useState<PlateauResult[]>([])
 
   useEffect(() => {
-    getWorkouts().then((workouts) => {
-      setPlateaus(detectPlateaus(workouts))
-    })
+    getWorkouts()
+      .then((workouts) => setPlateaus(detectPlateaus(workouts)))
+      .catch(() => {})
   }, [])
 
   if (plateaus.length === 0) return null

@@ -134,11 +134,13 @@ export function MuscleHeatmap() {
 
   useEffect(() => {
     setLoading(true)
-    getWorkouts().then((workouts) => {
-      const raw = computeMuscleVolumes(workouts, selectedDays)
-      setVolumes(normalizeVolumes(raw))
-      setLoading(false)
-    })
+    getWorkouts()
+      .then((workouts) => {
+        const raw = computeMuscleVolumes(workouts, selectedDays)
+        setVolumes(normalizeVolumes(raw))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [selectedDays])
 
   const hasData = Object.keys(volumes).length > 0

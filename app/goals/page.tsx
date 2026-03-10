@@ -1,15 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Plus, Trophy, Calendar, TrendingUp, Target, Shield, Info, Flame } from "lucide-react"
-import { BackButton } from "@/components/back-button"
+import { Plus, Trophy, Calendar, TrendingUp, Target, Flame, ArrowLeft } from "lucide-react"
 import { CreateGoalDialog } from "@/components/create-goal-dialog"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { getWorkoutStats } from "@/lib/workout-storage"
 import { getGoals } from "@/lib/goal-storage"
-import { signOut } from "next-auth/react"
-import Link from "next/link"
 
 interface Goal {
   id: string
@@ -31,10 +29,12 @@ const GOAL_TYPE_STYLES: Record<string, { color: string; bg: string; icon: any }>
 }
 
 export default function GoalsPage() {
+  const router = useRouter()
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadGoals = async () => {
+    try {
     const savedGoals = await getGoals()
     const stats = await getWorkoutStats()
 
@@ -72,7 +72,11 @@ export default function GoalsPage() {
         })
       )
     }
-    setLoading(false)
+    } catch (err) {
+      console.error("Failed to load goals:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -95,7 +99,9 @@ export default function GoalsPage() {
         <div className="px-5 pt-4 pb-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BackButton />
+              <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
               <div>
                 <h1 className="text-2xl font-bold text-foreground leading-tight">Goals</h1>
                 <p className="text-xs text-muted-foreground mt-0.5">Track your fitness targets</p>
@@ -114,7 +120,7 @@ export default function GoalsPage() {
         </div>
       </header>
 
-      <main className="px-5 py-5 space-y-6">
+      <main className="px-5 py-5 pb-24 space-y-6">
         <WorkoutSessionNotification />
 
         {/* Active Goals */}
@@ -228,33 +234,6 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {/* App Settings */}
-        <div className="rounded-2xl bg-card border border-border p-4 space-y-2">
-          <p className="font-semibold text-foreground mb-3">Settings</p>
-          <Link href="/privacy-policy" className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/20 transition-colors">
-            <div className="p-1.5 rounded-lg" style={{ background: "rgba(168,85,247,0.12)" }}>
-              <Shield className="h-4 w-4 text-purple-500" />
-            </div>
-            <span className="text-sm text-foreground">Privacy Policy</span>
-          </Link>
-          <div className="flex items-center gap-3 p-2 rounded-xl">
-            <div className="p-1.5 rounded-lg" style={{ background: "rgba(59,130,246,0.12)" }}>
-              <Info className="h-4 w-4 text-blue-500" />
-            </div>
-            <span className="text-sm text-foreground">FitTracker v2.0.0</span>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/sign-in" })}
-            className="flex items-center gap-3 p-2 rounded-xl w-full hover:bg-muted/20 transition-colors text-left"
-          >
-            <div className="p-1.5 rounded-lg" style={{ background: "rgba(239,68,68,0.12)" }}>
-              <svg className="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <span className="text-sm text-red-500 font-medium">Sign Out</span>
-          </button>
-        </div>
       </main>
     </div>
   )

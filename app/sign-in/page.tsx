@@ -9,6 +9,7 @@ const OAUTH_ERRORS: Record<string, string> = {
   OAuthAccountNotLinked: "This email is linked to a different sign-in method.",
   OAuthCallbackError:    "Google sign-in failed. Please try again.",
   OAuthSignin:           "Could not start Google sign-in. Please try again.",
+  OAuthAccount:          "This email is registered with Google. Please use the Google sign-in button below.",
   CredentialsSignin:     "Invalid email or password.",
   Default:               "Something went wrong. Please try again.",
 }
@@ -84,7 +85,8 @@ function SignInForm({ oauthError }: { oauthError: string | null }) {
     setLoading(false)
 
     if (result?.error) {
-      setError("Invalid email or password.")
+      const code = result.error
+      setError(OAUTH_ERRORS[code] ?? "Invalid email or password.")
     } else if (result?.url) {
       window.location.href = result.url
     }

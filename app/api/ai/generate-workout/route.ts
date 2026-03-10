@@ -42,7 +42,18 @@ export async function POST(req: Request) {
     )
   }
 
-  const { goal, duration, equipment, muscles, difficulty } = await req.json()
+  let body: { goal?: string; duration?: number; equipment?: string; muscles?: string; difficulty?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+  }
+
+  const { goal, duration, equipment, muscles, difficulty } = body
+
+  if (!goal || !duration || !equipment || !difficulty) {
+    return NextResponse.json({ error: "Missing required fields: goal, duration, equipment, difficulty" }, { status: 400 })
+  }
 
   const prompt = `You are a certified personal trainer. Generate a workout plan as JSON.
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Plus, Sparkles, Flame, Dumbbell } from "lucide-react"
+import { TrendingUp, Plus, Sparkles, Flame, Dumbbell, Wand2 } from "lucide-react"
 import Image from "next/image"
 import { WorkoutStats } from "@/components/workout-stats"
 import { WorkoutTemplates } from "@/components/workout-templates"
@@ -128,7 +128,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="px-5 py-5 space-y-6">
+      <main className="px-5 py-5 pb-24 space-y-6">
         <WorkoutSessionNotification />
 
         {isNewUser ? (
@@ -168,13 +168,21 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Primary CTA */}
-            <Link href="/log-workout">
-              <Button className="w-full h-13 text-base font-semibold" style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}>
-                <Plus className="h-5 w-5 mr-2" />
-                Start First Workout
-              </Button>
-            </Link>
+            {/* Primary CTAs */}
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/log-workout">
+                <Button className="w-full h-13 text-base font-semibold" style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}>
+                  <Plus className="h-5 w-5 mr-2" />
+                  Start Workout
+                </Button>
+              </Link>
+              <Link href="/generate-workout">
+                <Button variant="outline" className="w-full h-13 text-base font-semibold">
+                  <Wand2 className="h-5 w-5 mr-2" />
+                  AI Generate
+                </Button>
+              </Link>
+            </div>
 
             {/* Personalized quick-start templates */}
             {personalizedTemplates.length > 0 && (
@@ -246,10 +254,10 @@ export default function HomePage() {
                   Start Workout
                 </button>
               </Link>
-              <Link href="/progress">
+              <Link href="/generate-workout">
                 <button className="w-full h-14 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 bg-card border border-border text-foreground transition-transform active:scale-95">
-                  <TrendingUp className="h-5 w-5" />
-                  View Progress
+                  <Wand2 className="h-5 w-5" />
+                  AI Generate
                 </button>
               </Link>
             </div>
