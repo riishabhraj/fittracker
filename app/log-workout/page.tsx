@@ -120,6 +120,8 @@ function LogWorkoutContent() {
           setExercises(aiExercises)
           setIsWorkoutActive(true)
           toast.success(`✨ ${aiWorkout.workoutName} loaded!`)
+        } else {
+          toast.error("AI workout data not found. Please generate a new workout.")
         }
       } catch {
         toast.error("Failed to load AI workout.")
@@ -209,7 +211,7 @@ function LogWorkoutContent() {
     } else {
       setSessionLoaded(true)
     }
-  }, [templateId])
+  }, [templateId, source])
 
   // ── Auto-save session ────────────────────────────────────────────────────────
   useEffect(() => {

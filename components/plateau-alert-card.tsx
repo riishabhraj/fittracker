@@ -18,7 +18,7 @@ export function PlateauAlertCard() {
   useEffect(() => {
     getWorkouts()
       .then((workouts) => setPlateaus(detectPlateaus(workouts)))
-      .catch(() => {})
+      .catch((err) => console.error("PlateauAlertCard: failed to fetch workouts", err))
   }, [])
 
   if (plateaus.length === 0) return null
