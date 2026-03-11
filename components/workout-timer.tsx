@@ -9,23 +9,16 @@ interface WorkoutTimerProps {
 }
 
 export function WorkoutTimer({ isActive, duration }: WorkoutTimerProps) {
-  const [seconds, setSeconds] = useState(0)
+  // Initialise from duration so resumed sessions start at the right offset
+  const [seconds, setSeconds] = useState(() => (duration ?? 0) * 60)
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-
-    if (isActive) {
-      interval = setInterval(() => {
-        setSeconds((seconds) => seconds + 1)
-      }, 1000)
-    } else if (!isActive && seconds !== 0) {
-      if (interval) clearInterval(interval)
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [isActive, seconds])
+    if (!isActive) return
+    const interval = setInterval(() => {
+      setSeconds((s) => s + 1)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isActive])
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600)
@@ -38,8 +31,7 @@ export function WorkoutTimer({ isActive, duration }: WorkoutTimerProps) {
     return `${minutes}:${secs.toString().padStart(2, "0")}`
   }
 
-  // Use passed duration if available, otherwise use local seconds
-  const displayTime = duration !== undefined ? duration * 60 : seconds
+  const displayTime = seconds
 
   return (
     <div className="flex items-center space-x-2 bg-primary/10 px-3 py-1 rounded-lg">
