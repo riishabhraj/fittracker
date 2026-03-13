@@ -50,8 +50,10 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
           setLoading(false)
         }
       } else {
-        // Web path: standard OAuth redirect
-        window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent("/")}`
+        // Web path: use next-auth/react signIn which POSTs with CSRF token.
+        // Direct GET to /api/auth/signin/google throws UnknownAction when
+        // custom pages.signIn is configured in Auth.js v5.
+        signIn("google", { callbackUrl: "/" })
       }
     } catch (err: unknown) {
       // User cancelled or plugin error — don't show error for cancellation
