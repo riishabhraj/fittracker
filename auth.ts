@@ -16,6 +16,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MongoDBAdapter(clientPromise),
   providers: [
     ...authConfig.providers,
+    // Native Google Sign-In (Capacitor Android — bypasses WebView OAuth block)
+    Credentials({
+      id: "google-native",
+      name: "GoogleNative",
+      credentials: { idToken: { type: "text" } },
+      async authorize(credentials) {
+        const idToken = credentials?.idToken as string | undefined
+        if (!idToken) return null
+        try {
+          const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`)
+          if (!res.ok) return null
+          const payload = await res.json()
+          // Verify token was issued for our app
+          const validAud = [process.env.GOOGLE_CLIENT_ID, process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID]
+          if (!validAud.includes(payload.aud)) return null
+          if (!payload.email) return null
+
+          const email = (payload.email as string).toLowerCase()
+          const name  = (payload.name as string | undefined) ?? email.split("@")[0]
+
+          await connectDB()
+          let user = await User.findOne({ email })
+          if (!user) user = await User.create({ email, name, emailVerified: new Date() })
+
+          return { id: user._id.toString(), email: user.email, name: user.name ?? null }
+        } catch {
+          return null
+        }
+      },
+    }),
     Credentials({
       credentials: {
         email:    { label: "Email",    type: "email"    },

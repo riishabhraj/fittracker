@@ -5,6 +5,11 @@ const config: CapacitorConfig = {
   appName: 'FitTracker',
   webDir: 'out',
   plugins: {
+    GoogleAuth: {
+      scopes: ["profile", "email"],
+      serverClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
+      forceCodeForRefreshToken: true,
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,

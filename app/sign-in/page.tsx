@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
+import { Capacitor } from "@capacitor/core"
 
 const OAUTH_ERRORS: Record<string, string> = {
   OAuthAccountNotLinked: "This email is linked to a different sign-in method.",
@@ -15,20 +16,73 @@ const OAUTH_ERRORS: Record<string, string> = {
 }
 
 function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+
+  const handleClick = async () => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // Native path: use Capacitor plugin to avoid WebView OAuth block
+        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth")
+        await GoogleAuth.initialize({
+          clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
+          scopes: ["profile", "email"],
+          grantOfflineAccess: true,
+        })
+        const googleUser = await GoogleAuth.signIn()
+        const idToken = googleUser.authentication.idToken
+
+        const result = await signIn("google-native", { idToken, redirect: false, callbackUrl: "/" })
+        if (result?.url) {
+          window.location.href = result.url
+        } else {
+          setError("Google sign-in failed. Please try again.")
+          setLoading(false)
+        }
+      } else {
+        // Web path: standard OAuth redirect
+        window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent("/")}`
+      }
+    } catch (err: unknown) {
+      // User cancelled or plugin error — don't show error for cancellation
+      const msg = err instanceof Error ? err.message : ""
+      if (!msg.includes("cancel") && !msg.includes("Cancel") && !msg.includes("dismissed")) {
+        setError("Google sign-in failed. Please try again.")
+      }
+      setLoading(false)
+    }
+  }
+
   return (
+    <>
+    {error && (
+      <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
+        {error}
+      </p>
+    )}
     <button
       type="button"
-      onClick={() => signIn("google", { callbackUrl: "/" })}
-      className="w-full h-11 rounded-xl font-medium text-sm flex items-center justify-center gap-3 border border-border bg-card hover:bg-muted/20 active:scale-95 transition-all text-foreground"
+      onClick={handleClick}
+      disabled={loading}
+      className="w-full h-11 rounded-xl font-medium text-sm flex items-center justify-center gap-3 border border-border bg-card hover:bg-muted/20 active:scale-95 transition-all text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
     >
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-      </svg>
-      {label}
+      {loading ? (
+        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+      )}
+      {loading ? "Redirecting…" : label}
     </button>
+    </>
   )
 }
 
@@ -57,7 +111,7 @@ function InputField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+        className="w-full h-9 px-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
       />
     </div>
   )
@@ -153,9 +207,9 @@ function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-2">
       {error && (
-        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
+        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
           {error}
         </p>
       )}
@@ -166,7 +220,7 @@ function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-11 rounded-xl font-semibold text-sm active:scale-95 transition-all disabled:opacity-60"
+        className="w-full h-10 rounded-xl font-semibold text-sm active:scale-95 transition-all disabled:opacity-60"
         style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
       >
         {loading ? "Creating account…" : "Create Account"}
@@ -185,12 +239,12 @@ function SignInContent() {
   const [mode, setMode] = useState<"signin" | "register">("signin")
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+    <div className="h-screen overflow-hidden bg-background flex flex-col items-center justify-center px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {/* Logo */}
-      <div className="flex flex-col items-center mb-8">
-        <Image src="/fittracker-app-icon.png" alt="FitTracker" width={72} height={72} className="rounded-3xl mb-4 shadow-lg" />
-        <h1 className="text-3xl font-bold text-foreground">FitTracker</h1>
-        <p className="text-muted-foreground text-sm mt-1.5 text-center">Track workouts, hit PRs, build habits.</p>
+      <div className="flex flex-col items-center mb-5">
+        <Image src="/fittracker-app-icon.png" alt="FitTracker" width={56} height={56} className="rounded-2xl mb-3 shadow-lg" />
+        <h1 className="text-2xl font-bold text-foreground">FitTracker</h1>
+        <p className="text-muted-foreground text-sm mt-1 text-center">Track workouts, hit PRs, build habits.</p>
       </div>
 
       <div className="w-full max-w-sm">
@@ -214,7 +268,7 @@ function SignInContent() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-card border border-border p-5">
+        <div className="rounded-2xl bg-card border border-border p-4">
           {mode === "signin"
             ? <SignInForm oauthError={oauthError} />
             : <RegisterForm />
@@ -222,7 +276,7 @@ function SignInContent() {
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground mt-8 text-center">
+      <p className="text-[11px] text-muted-foreground mt-4 text-center">
         Your data is private and stored securely.
       </p>
     </div>
