@@ -36,9 +36,19 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
         const googleUser = await GoogleAuth.signIn()
         const idToken = googleUser.authentication.idToken
 
-        const result = await signIn("google-native", { idToken, redirect: false, callbackUrl: "/" })
-        if (result?.url) {
-          window.location.href = result.url
+        // next-auth/react's signIn() skips credentials providers from /api/auth/providers,
+        // falling back to OAuth GET path → UnknownAction. POST directly instead.
+        const csrfRes = await fetch("/api/auth/csrf")
+        const { csrfToken } = await csrfRes.json()
+
+        const callbackRes = await fetch("/api/auth/callback/google-native", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ csrfToken, idToken, callbackUrl: "/", json: "true" }),
+        })
+        const callbackData = await callbackRes.json().catch(() => ({}))
+        if (callbackData?.url) {
+          window.location.href = callbackData.url
         } else {
           setError("Google sign-in failed. Please try again.")
           setLoading(false)
