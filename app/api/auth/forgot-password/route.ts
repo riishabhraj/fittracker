@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from:    "FitTracker <noreply@" + (process.env.RESEND_FROM_DOMAIN ?? "fittracker.app") + ">",
+      from:    process.env.RESEND_FROM_DOMAIN === "resend.dev"
+               ? "FitTracker <onboarding@resend.dev>"
+               : `FitTracker <noreply@${process.env.RESEND_FROM_DOMAIN ?? "fittracker.app"}>`,
       to:      user.email,
       subject: "Reset your FitTracker password",
       html: `
