@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { RPEPicker } from "@/components/rpe-picker"
 import { calculateEpley1RM } from "@/lib/one-rm"
 import type { SuggestedSet } from "@/lib/progressive-overload"
+import type { ExerciseType } from "@/components/exercise-selector"
 import { toast } from "sonner"
 
 interface Set {
@@ -26,6 +27,7 @@ interface Exercise {
   category: string
   sets: Set[]
   supersetGroup?: string
+  exerciseType?: ExerciseType
 }
 
 export interface PersonalRecord {
@@ -73,6 +75,11 @@ export function ExerciseLogger({
       if (restTimerRef.current) clearInterval(restTimerRef.current)
     }
   }, [])
+
+  const exerciseType: ExerciseType = exercise.exerciseType ?? "weighted"
+  const isBodyweight = exerciseType === "bodyweight"
+  const isOptionalWeight = exerciseType === "bodyweight_optional_weight"
+  const showWeightColumn = !isBodyweight // weighted + bodyweight_optional_weight both show weight
 
   const updateSet = (
     setIndex: number,
@@ -126,8 +133,12 @@ export function ExerciseLogger({
   }
 
   function isNewPR(set: Set): boolean {
-    if (!set.reps || !set.weight) return false
+    if (!set.reps) return false
     if (!personalRecord) return false
+    if (isBodyweight) {
+      // For bodyweight, PR is just max reps
+      return set.reps > personalRecord.reps
+    }
     return (
       set.weight > personalRecord.weight ||
       (set.weight === personalRecord.weight && set.reps > personalRecord.reps)
@@ -150,9 +161,10 @@ export function ExerciseLogger({
     // PR detection
     if (isNewPR(set)) {
       setPrSetIndices((prev) => new Set([...prev, setIndex]))
-      toast(`🏆 New PR! ${exercise.name} — ${set.weight} kg × ${set.reps}`, {
-        duration: 4000,
-      })
+      const prLabel = isBodyweight
+        ? `${exercise.name} — ${set.reps} reps`
+        : `${exercise.name} — ${set.weight} kg × ${set.reps}`
+      toast(`🏆 New PR! ${prLabel}`, { duration: 4000 })
     }
 
     // Auto-open RPE picker
@@ -193,6 +205,16 @@ export function ExerciseLogger({
   const firstIncompleteIdx = exercise.sets.findIndex((s) => !s.completed)
   const showSuggestion = suggestion && firstIncompleteIdx !== -1
 
+  // PR display label
+  const prLabel = personalRecord
+    ? isBodyweight
+      ? `${personalRecord.reps} reps`
+      : `${personalRecord.weight}×${personalRecord.reps}`
+    : null
+
+  // Grid layout: 4-col for bodyweight (no weight), 5-col otherwise
+  const gridClass = showWeightColumn ? "grid-cols-5" : "grid-cols-4"
+
   return (
     <Card className={`p-4 bg-card border-border ${supersetPartnerName ? "border-primary/30" : ""}`}>
       <div className="flex items-center justify-between mb-4">
@@ -216,9 +238,15 @@ export function ExerciseLogger({
               <Badge variant="secondary" className="text-xs">
                 {exercise.category}
               </Badge>
-              {personalRecord && (
+              {isBodyweight && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">BW</span>
+              )}
+              {isOptionalWeight && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">BW+</span>
+              )}
+              {prLabel && (
                 <span className="text-xs text-muted-foreground">
-                  PR: {personalRecord.weight} kg × {personalRecord.reps}
+                  PR: {prLabel}
                 </span>
               )}
             </div>
@@ -232,7 +260,6 @@ export function ExerciseLogger({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {/* Superset actions */}
             {!supersetPartnerName && canLinkSuperset && (
               <DropdownMenuItem onClick={onLinkSuperset} className="gap-2">
                 <Link className="h-4 w-4" />
@@ -312,10 +339,12 @@ export function ExerciseLogger({
       )}
 
       {/* Sets Table Header */}
-      <div className="grid grid-cols-5 gap-2 mb-2 text-sm text-muted-foreground">
+      <div className={`grid ${gridClass} gap-2 mb-2 text-sm text-muted-foreground`}>
         <div className="text-center">Set</div>
         <div className="text-center">Reps</div>
-        <div className="text-center">Weight</div>
+        {showWeightColumn && (
+          <div className="text-center">{isOptionalWeight ? "+Weight" : "Weight"}</div>
+        )}
         <div className="text-center">Best PR</div>
         <div className="text-center">✓</div>
       </div>
@@ -326,7 +355,7 @@ export function ExerciseLogger({
           <div key={setIndex}>
             {/* Main set row */}
             <div
-              className={`grid grid-cols-5 gap-2 items-center rounded-lg transition-colors ${
+              className={`grid ${gridClass} gap-2 items-center rounded-lg transition-colors ${
                 prSetIndices.has(setIndex) ? "bg-yellow-500/8" : ""
               }`}
             >
@@ -345,17 +374,20 @@ export function ExerciseLogger({
                 disabled={set.completed}
               />
 
-              <Input
-                type="number"
-                value={set.weight || ""}
-                onChange={(e) => updateSet(setIndex, "weight", Number.parseInt(e.target.value) || 0)}
-                className="text-center h-8"
-                disabled={set.completed}
-              />
+              {showWeightColumn && (
+                <Input
+                  type="number"
+                  value={set.weight || ""}
+                  onChange={(e) => updateSet(setIndex, "weight", Number.parseInt(e.target.value) || 0)}
+                  placeholder={isOptionalWeight ? "+kg" : ""}
+                  className="text-center h-8"
+                  disabled={set.completed}
+                />
+              )}
 
               {/* Best PR column */}
               <div className="text-center text-sm text-muted-foreground">
-                {personalRecord ? `${personalRecord.weight}×${personalRecord.reps}` : "—"}
+                {prLabel ?? "—"}
               </div>
 
               <div className="flex justify-center">
@@ -382,7 +414,7 @@ export function ExerciseLogger({
                     variant="ghost"
                     className="h-8 w-8 p-0 hover:text-primary"
                     onClick={() => completeSet(setIndex)}
-                    disabled={!set.reps || !set.weight}
+                    disabled={!set.reps || (!isBodyweight && !isOptionalWeight && !set.weight)}
                   >
                     <div className="w-4 h-4 border-2 border-muted-foreground rounded" />
                   </Button>
@@ -398,6 +430,10 @@ export function ExerciseLogger({
                     <span className="text-xs text-muted-foreground">
                       ~1RM:{" "}
                       <span className="font-semibold text-primary">{set.estimated1RM} kg</span>
+                    </span>
+                  ) : isBodyweight && set.reps > 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      <span className="font-semibold text-blue-400">BW</span> × {set.reps}
                     </span>
                   ) : (
                     <span />

@@ -8,7 +8,7 @@ import { Plus, Play, Pause, Check, Activity } from "lucide-react"
 import Image from "next/image"
 import { WorkoutTimer } from "@/components/workout-timer"
 import { ExerciseLogger } from "@/components/exercise-logger"
-import { ExerciseSelector } from "@/components/exercise-selector"
+import { ExerciseSelector, EXERCISE_TYPE_MAP, type ExerciseType } from "@/components/exercise-selector"
 import { SupersetBracket } from "@/components/superset-bracket"
 import { BackButton } from "@/components/back-button"
 import { templates } from "@/components/workout-templates"
@@ -44,6 +44,7 @@ interface Exercise {
   category: string
   sets: ExerciseSet[]
   supersetGroup?: string
+  exerciseType?: ExerciseType
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ function LogWorkoutContent() {
             id: `ai-${i}-${Date.now()}`,
             name: ex.name ?? "Exercise",
             category: ex.category ?? "Other",
+            exerciseType: EXERCISE_TYPE_MAP[ex.name] ?? "weighted",
             sets: Array(Math.max(1, Number(ex.sets) || 3)).fill(null).map(() => ({
               reps: Math.max(1, Number(ex.reps) || 10),
               weight: 0,
@@ -165,6 +167,7 @@ function LogWorkoutContent() {
                   id: `template-${index}-${Date.now()}`,
                   name: exercise.name,
                   category: exercise.category,
+                  exerciseType: EXERCISE_TYPE_MAP[exercise.name] ?? "weighted",
                   sets:
                     exercise.sets.length > 0
                       ? exercise.sets.map((s) => ({
@@ -195,6 +198,7 @@ function LogWorkoutContent() {
               id: `template-${index}-${Date.now()}`,
               name: exercise.name,
               category: exercise.category,
+              exerciseType: EXERCISE_TYPE_MAP[exercise.name] ?? "weighted",
               sets: Array(exercise.sets)
                 .fill(null)
                 .map(() => ({ reps: 0, weight: 0, completed: false })),
@@ -248,11 +252,12 @@ function LogWorkoutContent() {
   }, [isWorkoutActive, workoutStartTime])
 
   // ── Exercise actions ─────────────────────────────────────────────────────────
-  const addExercise = (exercise: { name: string; category: string }) => {
+  const addExercise = (exercise: { name: string; category: string; exerciseType: ExerciseType }) => {
     const newExercise: Exercise = {
       id: Date.now().toString(),
       name: exercise.name,
       category: exercise.category,
+      exerciseType: exercise.exerciseType,
       sets: [{ reps: 0, weight: 0, completed: false }],
     }
     setExercises((prev) => [...prev, newExercise])
