@@ -19,6 +19,6 @@ export const config = {
      * - /_next/* (Next.js internals)
      * - /.*\..* (static files: .png, .ico, .json, .js, .css etc.)
      */
-    "/((?!sign-in|privacy-policy|api/auth|_next|[^?]*\\.(?:png|jpg|jpeg|gif|ico|svg|css|js|json|txt|xml|webp|woff2?)).*)",
+    "/((?!sign-in|reset-password|privacy-policy|api/auth|_next|[^?]*\\.(?:png|jpg|jpeg|gif|ico|svg|css|js|json|txt|xml|webp|woff2?)).*)",
   ],
 }

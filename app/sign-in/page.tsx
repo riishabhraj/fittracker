@@ -162,7 +162,22 @@ function SignInForm({ oauthError }: { oauthError: string | null }) {
         </p>
       )}
       <InputField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoComplete="email" />
-      <InputField label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" autoComplete="current-password" />
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-muted-foreground">Password</label>
+          <a href="/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            Forgot password?
+          </a>
+        </div>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          autoComplete="current-password"
+          className="w-full h-9 px-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
+        />
+      </div>
       <button
         type="submit"
         disabled={loading}
