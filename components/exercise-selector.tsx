@@ -126,7 +126,6 @@ const exercises: Exercise[] = [
   { name: "Overhead Tricep Extension",  category: "Arms",       muscle: "Triceps" },
   { name: "Cable Overhead Tricep Extension", category: "Arms",  muscle: "Triceps" },
   { name: "Tricep Kickbacks",           category: "Arms",       muscle: "Triceps" },
-  { name: "Diamond Push-ups",           category: "Arms",       muscle: "Triceps",         type: "bodyweight" },
 
   // ── Core ───────────────────────────────────────────────────────────────────
   { name: "Planks",                     category: "Core",       muscle: "Abdominals",      type: "bodyweight" },
@@ -155,7 +154,6 @@ const exercises: Exercise[] = [
   { name: "Jumping Jacks",              category: "Cardio",     muscle: "Full Body",       type: "bodyweight" },
   { name: "High Knees",                 category: "Cardio",     muscle: "Legs",            type: "bodyweight" },
   { name: "Butt Kickers",               category: "Cardio",     muscle: "Hamstrings",      type: "bodyweight" },
-  { name: "Jump Squats",                category: "Cardio",     muscle: "Legs",            type: "bodyweight" },
   { name: "Box Jumps",                  category: "Cardio",     muscle: "Legs",            type: "bodyweight" },
   { name: "Battle Ropes",               category: "Cardio",     muscle: "Full Body" },
   { name: "Rowing Machine",             category: "Cardio",     muscle: "Full Body" },

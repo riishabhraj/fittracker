@@ -83,6 +83,7 @@ export default function SettingsPage() {
   }, [])
 
   const changePassword = async () => {
+    if (!pwForm.current) { toast.error("Current password is required"); return }
     if (pwForm.next !== pwForm.confirm) { toast.error("New passwords don't match"); return }
     if (pwForm.next.length < 8) { toast.error("Password must be at least 8 characters"); return }
     setPwSaving(true)

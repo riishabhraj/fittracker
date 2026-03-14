@@ -50,13 +50,13 @@ function WorkoutCompleteContent() {
   const shareCardRef = useRef<HTMLDivElement>(null)
 
   const name         = params.get("name")     ?? "Workout"
-  const sets         = Number(params.get("sets")     ?? 0)
-  const reps         = Number(params.get("reps")     ?? 0)
-  const weight       = Number(params.get("weight")   ?? 0)
-  const duration     = Number(params.get("duration") ?? 0)
+  const sets         = Math.max(0, Number(params.get("sets"))     || 0)
+  const reps         = Math.max(0, Number(params.get("reps"))     || 0)
+  const weight       = Math.max(0, Number(params.get("weight"))   || 0)
+  const duration     = Math.max(0, Number(params.get("duration")) || 0)
   const topExercise  = params.get("topExercise") ?? ""
-  const topWeight    = Number(params.get("topWeight") ?? 0)
-  const prCount      = Number(params.get("prCount")  ?? 0)
+  const topWeight    = Math.max(0, Number(params.get("topWeight")) || 0)
+  const prCount      = Math.max(0, Number(params.get("prCount"))  || 0)
   const prNames      = params.get("prNames") ? params.get("prNames")!.split(",").filter(Boolean) : []
 
   const suggestion = getSuggestion(topExercise, topWeight, sets)
@@ -77,7 +77,7 @@ function WorkoutCompleteContent() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 px-5 pt-16 pb-10 flex flex-col items-center">
+      <main className="flex-1 px-5 pb-10 flex flex-col items-center" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 4rem)" }}>
 
         {/* Trophy + headline */}
         <div className="text-center mb-8">

@@ -47,7 +47,8 @@ function formatDate(dateString: string) {
 
 function isThisWeek(date: Date): boolean {
   const now = new Date()
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay())
   startOfWeek.setHours(0, 0, 0, 0)
   const endOfWeek = new Date(startOfWeek)
   endOfWeek.setDate(startOfWeek.getDate() + 6)
@@ -198,7 +199,7 @@ export default function WorkoutsPage() {
 
   const totalWorkouts = workouts.length
   const avgDuration = workouts.length > 0
-    ? Math.round(workouts.reduce((sum, w) => sum + parseInt(w.duration), 0) / workouts.length)
+    ? Math.round(workouts.reduce((sum, w) => sum + (parseInt(w.duration) || 0), 0) / workouts.length)
     : 0
   const totalPRs = workouts.reduce((sum, w) => sum + w.personalRecords, 0)
   const totalWeight = workouts.reduce((sum, w) => sum + w.totalWeight, 0)
@@ -345,14 +346,6 @@ export default function WorkoutsPage() {
           )}
         </div>
 
-        {/* Load More */}
-        {filteredWorkouts.length > 0 && (
-          <div className="text-center">
-            <Button variant="outline" className="w-full md:w-auto">
-              Load More Workouts
-            </Button>
-          </div>
-        )}
       </main>
 
       {/* Save as Template dialog */}
