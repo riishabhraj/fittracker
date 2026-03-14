@@ -306,18 +306,18 @@ export default function WorkoutsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-4">
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Calendar className="h-4 w-4 shrink-0" />
                         {formatDate(workout.date)}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Clock className="h-4 w-4 shrink-0" />
                         {workout.duration}
                       </span>
-                      <span>{workout.exercises} exercises</span>
+                      <span className="whitespace-nowrap">{workout.exercises} exercises</span>
                       {workout.totalWeight > 0 && (
-                        <span>{workout.totalWeight.toLocaleString()} lbs total</span>
+                        <span className="whitespace-nowrap">{workout.totalWeight.toLocaleString()} lbs total</span>
                       )}
                     </div>
 

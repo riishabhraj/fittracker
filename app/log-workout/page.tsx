@@ -63,6 +63,7 @@ function LogWorkoutContent() {
   const [workoutDuration, setWorkoutDuration] = useState(0)
   const [showExerciseSelector, setShowExerciseSelector] = useState(false)
   const [sessionLoaded, setSessionLoaded] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Single cache of all workouts — used for both PRs and suggestions
   const [existingPRs, setExistingPRs] = useState<
@@ -301,6 +302,7 @@ function LogWorkoutContent() {
 
   // ── Finish workout ───────────────────────────────────────────────────────────
   const finishWorkout = async () => {
+    if (isSaving) return
     if (exercises.length === 0) {
       toast.error("Please add at least one exercise to finish the workout")
       return
@@ -313,6 +315,7 @@ function LogWorkoutContent() {
       return
     }
 
+    setIsSaving(true)
     try {
       const completedExercises = exercises
         .map((ex) => ({
@@ -400,6 +403,7 @@ function LogWorkoutContent() {
     } catch (error) {
       console.error("Error saving workout:", error)
       toast.error("Failed to save workout. Please try again.")
+      setIsSaving(false)
     }
   }
 
@@ -578,7 +582,7 @@ function LogWorkoutContent() {
             <Button
               onClick={finishWorkout}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={completedSets === 0}
+              disabled={completedSets === 0 || isSaving}
             >
               <Check className="h-4 w-4 mr-2" />
               Finish Workout

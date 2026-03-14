@@ -133,7 +133,14 @@ export const calculateStreak = (workouts: Workout[]): number => {
 
 export const getRecentWorkouts = async (limit = 5): Promise<Workout[]> => {
   const workouts = await getWorkouts()
-  return workouts
+  // Deduplicate by id in case of double-saves
+  const seen = new Set<string>()
+  const unique = workouts.filter((w) => {
+    if (seen.has(w.id)) return false
+    seen.add(w.id)
+    return true
+  })
+  return unique
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, limit)
 }

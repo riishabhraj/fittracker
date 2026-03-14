@@ -15,10 +15,13 @@ function formatDuration(minutes: number): string {
 
 function formatDate(date: Date): string {
   const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+  // Compare calendar dates, not raw ms, so a 17h-old workout isn't "Today"
+  const today    = new Date(now.getFullYear(),  now.getMonth(),  now.getDate())
+  const workoutDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.round((today.getTime() - workoutDay.getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays === 0) return "Today"
   if (diffDays === 1) return "Yesterday"
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 7)  return `${diffDays}d ago`
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
