@@ -7,6 +7,8 @@ export interface Workout {
   totalSets: number
   totalReps: number
   totalWeight: number
+  usedTemplate?: boolean
+  usedAIGenerate?: boolean
 }
 
 export interface Exercise {

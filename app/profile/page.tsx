@@ -13,6 +13,7 @@ import { ProfileAchievementsStrip } from "@/components/profile-achievements-stri
 import { getWorkouts, getWorkoutStats, computePersonalRecords } from "@/lib/workout-storage"
 import type { Workout } from "@/lib/workout-storage"
 import type { FitnessProfile } from "@/lib/fitness-utils"
+import { computeAchievements } from "@/lib/achievements"
 
 interface UserInfo {
   name: string
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [stats, setStats] = useState({ totalWorkouts: 0, currentStreak: 0, totalWeight: 0, weeklyWorkouts: 0 })
   const [prCount, setPrCount] = useState(0)
+  const [badgeCount, setBadgeCount] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -43,7 +45,10 @@ export default function ProfilePage() {
         setProfile(profileRes)
         setWorkouts(workoutsData)
         setStats(statsData)
-        setPrCount(Object.keys(computePersonalRecords(workoutsData)).length)
+        const prs = computePersonalRecords(workoutsData)
+        setPrCount(Object.keys(prs).length)
+        const achievementResults = computeAchievements({ workouts: workoutsData, stats: statsData, prs, profile: profileRes })
+        setBadgeCount(achievementResults.filter(a => a.unlocked).length)
       } catch {
         // non-blocking
       } finally {
@@ -113,6 +118,21 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
           </Card>
+        </Link>
+
+        <Link href="/achievements">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border hover:border-primary/40 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="text-xl">🏅</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Achievements</p>
+                <p className="text-xs text-muted-foreground">{badgeCount} badge{badgeCount !== 1 ? "s" : ""} earned</p>
+              </div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
         </Link>
 
         <BodyMetricsCard

@@ -45,6 +45,8 @@ interface Exercise {
   sets: ExerciseSet[]
   supersetGroup?: string
   exerciseType?: ExerciseType
+  usedTemplate?: boolean
+  usedAIGenerate?: boolean
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -355,6 +357,8 @@ function LogWorkoutContent() {
         totalSets,
         totalReps,
         totalWeight,
+        usedTemplate: !!templateId,
+        usedAIGenerate: source === "ai",
       }
 
       // PR detection using PRs loaded at session start

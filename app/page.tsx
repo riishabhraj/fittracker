@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { PlateauAlertCard } from "@/components/plateau-alert-card"
 import { ReadinessScoreCard } from "@/components/readiness-score-card"
+import { NewBadgeNotifier } from "@/components/new-badge-notifier"
 import {
   getInsight,
   getAICoachTip,
@@ -234,6 +235,7 @@ export default function HomePage() {
         ) : (
           /* ── Returning user dashboard ── */
           <div className="space-y-6">
+            <NewBadgeNotifier />
             {/* Readiness score */}
             <ReadinessScoreCard />
 

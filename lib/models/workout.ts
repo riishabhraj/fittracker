@@ -33,6 +33,8 @@ const WorkoutSchema = new Schema(
     totalSets: { type: Number, default: 0, min: 0 },
     totalReps: { type: Number, default: 0, min: 0 },
     totalWeight: { type: Number, default: 0, min: 0 },
+    usedTemplate: { type: Boolean, default: false },
+    usedAIGenerate: { type: Boolean, default: false },
   },
   { timestamps: true }
 )
