@@ -16,6 +16,8 @@ interface WorkoutSessionExercise {
 
 interface WorkoutSession {
   id: string
+  /** Stable MongoDB-compatible ObjectId used when persisting the workout — never changes for the same session */
+  workoutId: string
   workoutName: string
   exercises: WorkoutSessionExercise[]
   isWorkoutActive: boolean
@@ -26,13 +28,26 @@ interface WorkoutSession {
   lastModified: string
 }
 
+/**
+ * Generates a valid 24-char hex string that MongoDB accepts as an ObjectId.
+ * Format: 8-char unix timestamp (seconds) + 16-char random hex.
+ */
+function generateWorkoutId(): string {
+  const timestamp = Math.floor(Date.now() / 1000).toString(16).padStart(8, "0")
+  const randomBytes = new Uint8Array(8)
+  crypto.getRandomValues(randomBytes)
+  const random = Array.from(randomBytes).map((b) => b.toString(16).padStart(2, "0")).join("")
+  return timestamp + random
+}
+
 const WORKOUT_SESSION_KEY = 'fittracker_active_workout_session'
 
-export function saveWorkoutSession(session: Omit<WorkoutSession, 'id' | 'createdAt' | 'lastModified'>) {
+export function saveWorkoutSession(session: Omit<WorkoutSession, 'id' | 'workoutId' | 'createdAt' | 'lastModified'>) {
   try {
     const existingSession = getWorkoutSession()
     const sessionData: WorkoutSession = {
       id: existingSession?.id || `session-${Date.now()}`,
+      workoutId: existingSession?.workoutId || generateWorkoutId(),
       ...session,
       createdAt: existingSession?.createdAt || new Date().toISOString(),
       lastModified: new Date().toISOString()
@@ -117,7 +132,7 @@ export function getWorkoutSessionSummary() {
 
 // Auto-save hook for React components
 export function useWorkoutSessionAutoSave() {
-  const saveSession = (sessionData: Omit<WorkoutSession, 'id' | 'createdAt' | 'lastModified'>) => {
+  const saveSession = (sessionData: Omit<WorkoutSession, 'id' | 'workoutId' | 'createdAt' | 'lastModified'>) => {
     // Only save if there's meaningful data (exercises or active state)
     if (sessionData.exercises.length > 0 || sessionData.isWorkoutActive) {
       return saveWorkoutSession(sessionData)

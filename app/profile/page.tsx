@@ -9,7 +9,6 @@ import { ProfileHeader } from "@/components/profile-header"
 import { ProfileStatsGrid } from "@/components/profile-stats-grid"
 import { BodyMetricsCard } from "@/components/body-metrics-card"
 import { FitnessProfileCard } from "@/components/fitness-profile-card"
-import { ProfileAchievementsStrip } from "@/components/profile-achievements-strip"
 import { getWorkouts, getWorkoutStats, computePersonalRecords } from "@/lib/workout-storage"
 import type { Workout } from "@/lib/workout-storage"
 import type { FitnessProfile } from "@/lib/fitness-utils"
@@ -135,6 +134,7 @@ export default function ProfilePage() {
           </div>
         </Link>
 
+        <div className="mt-2" />
         <BodyMetricsCard
           height={profile?.height}
           weight={profile?.weight}
@@ -150,12 +150,6 @@ export default function ProfilePage() {
           onUpdate={handleProfileUpdate}
         />
 
-        <ProfileAchievementsStrip
-          workouts={workouts}
-          weeklyWorkouts={stats.weeklyWorkouts}
-          currentStreak={stats.currentStreak}
-          totalWeight={stats.totalWeight}
-        />
       </main>
     </div>
   )

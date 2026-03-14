@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, Play, Pause, Check, Activity } from "lucide-react"
 import Image from "next/image"
 import { WorkoutTimer } from "@/components/workout-timer"
@@ -22,6 +23,7 @@ import {
 import {
   clearWorkoutSession,
   getWorkoutSession,
+  saveWorkoutSession,
   useWorkoutSessionAutoSave,
 } from "@/lib/workout-session-storage"
 import { computeSuggestion, type SuggestedSet } from "@/lib/progressive-overload"
@@ -49,6 +51,83 @@ interface Exercise {
   usedAIGenerate?: boolean
 }
 
+// ─── Auto-name helper ─────────────────────────────────────────────────────────
+
+function generateWorkoutName(exercises: Exercise[]): string {
+  if (exercises.length === 0) return "New Workout"
+  if (exercises.length === 1) return exercises[0].name
+
+  const cats = exercises.map((e) => e.category.toLowerCase())
+  const pushCats = ["chest", "shoulders", "triceps", "arms"]
+  const pullCats = ["back", "biceps"]
+  const legCats  = ["legs", "glutes", "calves"]
+
+  const pushCount = cats.filter((c) => pushCats.some((p) => c.includes(p))).length
+  const pullCount = cats.filter((c) => pullCats.some((p) => c.includes(p))).length
+  const legCount  = cats.filter((c) => legCats.some((p)  => c.includes(p))).length
+  const total = exercises.length
+
+  if (legCount  / total >= 0.6) return "Leg Day"
+  if (pushCount / total >= 0.6) return "Push Day"
+  if (pullCount / total >= 0.6) return "Pull Day"
+  if ((pushCount + pullCount) / total >= 0.7) return "Upper Body"
+  if (total === 2) return `${exercises[0].name} & ${exercises[1].name}`
+  return `${exercises[0].name} & ${total - 1} more`
+}
+
+// ─── Finish-workout name modal ────────────────────────────────────────────────
+
+function FinishModal({
+  initialName,
+  onConfirm,
+  onCancel,
+}: {
+  initialName: string
+  onConfirm: (name: string) => void
+  onCancel: () => void
+}) {
+  const [name, setName] = useState(initialName)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    // Select all text so user can immediately retype
+    inputRef.current?.select()
+  }, [])
+
+  return (
+    <Dialog open onOpenChange={onCancel}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Name your workout</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-1">
+          <Input
+            ref={inputRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Push Day"
+            className="h-11 bg-card border-border"
+            onKeyDown={(e) => e.key === "Enter" && name.trim() && onConfirm(name.trim())}
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 font-semibold"
+              style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+              disabled={!name.trim()}
+              onClick={() => onConfirm(name.trim())}
+            >
+              Save Workout
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function LogWorkoutContent() {
@@ -66,6 +145,7 @@ function LogWorkoutContent() {
   const [showExerciseSelector, setShowExerciseSelector] = useState(false)
   const [sessionLoaded, setSessionLoaded] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showFinishModal, setShowFinishModal] = useState(false)
 
   // Single cache of all workouts — used for both PRs and suggestions
   const [existingPRs, setExistingPRs] = useState<
@@ -110,7 +190,6 @@ function LogWorkoutContent() {
         if (raw) {
           sessionStorage.removeItem("fittracker_ai_workout")
           const aiWorkout = JSON.parse(raw) as { workoutName: string; exercises: Array<{ name: string; category: string; sets: number; reps: number }> }
-          setWorkoutName(aiWorkout.workoutName)
           const aiExercises: Exercise[] = aiWorkout.exercises.map((ex, i) => ({
             id: `ai-${i}-${Date.now()}`,
             name: ex.name ?? "Exercise",
@@ -122,6 +201,9 @@ function LogWorkoutContent() {
               completed: false,
             })),
           }))
+          // Seed session immediately so workoutId is stable from the start
+          saveWorkoutSession({ workoutName: aiWorkout.workoutName, exercises: aiExercises, isWorkoutActive: true, workoutStartTime: null, workoutDuration: 0, templateId: null })
+          setWorkoutName(aiWorkout.workoutName)
           setExercises(aiExercises)
           setIsWorkoutActive(true)
           toast.success(`✨ ${aiWorkout.workoutName} loaded!`)
@@ -157,7 +239,6 @@ function LogWorkoutContent() {
             const res = await fetch(`/api/templates/${templateId}`)
             if (res.ok) {
               const userTemplate = await res.json()
-              setWorkoutName(userTemplate.name)
               const templateExercises: Exercise[] = userTemplate.exercises.map(
                 (
                   exercise: {
@@ -181,6 +262,9 @@ function LogWorkoutContent() {
                       : [{ reps: 0, weight: 0, completed: false }],
                 })
               )
+              // Seed session immediately so workoutId is stable from the start
+              saveWorkoutSession({ workoutName: userTemplate.name, exercises: templateExercises, isWorkoutActive: true, workoutStartTime: null, workoutDuration: 0, templateId })
+              setWorkoutName(userTemplate.name)
               setExercises(templateExercises)
               setIsWorkoutActive(true)
               toast.success(
@@ -195,7 +279,6 @@ function LogWorkoutContent() {
       } else {
         const template = templates.find((t) => t.id === templateId)
         if (template) {
-          setWorkoutName(template.name)
           const templateExercises: Exercise[] = template.exerciseList.map(
             (exercise, index) => ({
               id: `template-${index}-${Date.now()}`,
@@ -207,6 +290,9 @@ function LogWorkoutContent() {
                 .map(() => ({ reps: 0, weight: 0, completed: false })),
             })
           )
+          // Seed session immediately so workoutId is stable from the start
+          saveWorkoutSession({ workoutName: template.name, exercises: templateExercises, isWorkoutActive: true, workoutStartTime: null, workoutDuration: 0, templateId })
+          setWorkoutName(template.name)
           setExercises(templateExercises)
           setIsWorkoutActive(true)
           toast.success(
@@ -216,6 +302,8 @@ function LogWorkoutContent() {
         setSessionLoaded(true)
       }
     } else {
+      // Fresh workout — seed session immediately to lock in a workoutId
+      saveWorkoutSession({ workoutName: "New Workout", exercises: [], isWorkoutActive: false, workoutStartTime: null, workoutDuration: 0, templateId: null })
       setSessionLoaded(true)
     }
   }, [templateId, source])
@@ -263,7 +351,15 @@ function LogWorkoutContent() {
       exerciseType: exercise.exerciseType,
       sets: [{ reps: 0, weight: 0, completed: false }],
     }
-    setExercises((prev) => [...prev, newExercise])
+    setExercises((prev) => {
+      const updated = [...prev, newExercise]
+      // Auto-name whenever the name is still the default or a previously auto-generated name
+      setWorkoutName((current) => {
+        const wasAutoNamed = current === "New Workout" || current === generateWorkoutName(prev)
+        return wasAutoNamed ? generateWorkoutName(updated) : current
+      })
+      return updated
+    })
     setShowExerciseSelector(false)
     if (exercises.length === 0) setIsWorkoutActive(true)
   }
@@ -303,20 +399,24 @@ function LogWorkoutContent() {
   }
 
   // ── Finish workout ───────────────────────────────────────────────────────────
-  const finishWorkout = async () => {
+  const handleFinishPress = () => {
     if (isSaving) return
     if (exercises.length === 0) {
       toast.error("Please add at least one exercise to finish the workout")
       return
     }
-    const hasCompletedSets = exercises.some((ex) =>
-      ex.sets.some((set) => set.completed)
-    )
+    const hasCompletedSets = exercises.some((ex) => ex.sets.some((set) => set.completed))
     if (!hasCompletedSets) {
       toast.error("Please complete at least one set to finish the workout")
       return
     }
+    setShowFinishModal(true)
+  }
 
+  const finishWorkout = async (confirmedName: string) => {
+    setShowFinishModal(false)
+    if (isSaving) return
+    setWorkoutName(confirmedName)
     setIsSaving(true)
     try {
       const completedExercises = exercises
@@ -348,9 +448,13 @@ function LogWorkoutContent() {
         0
       )
 
+      // Use the stable workoutId from the active session so re-saves upsert
+      // rather than create duplicate entries (back button, app resume, etc.)
+      const stableId = getWorkoutSession()?.workoutId ?? ""
+
       const workout: Workout = {
-        id: Date.now().toString(),
-        name: workoutName.trim() || "Untitled Workout",
+        id: stableId,
+        name: confirmedName || "Untitled Workout",
         date: (workoutStartTime || new Date()).toISOString(),
         duration: workoutDuration,
         exercises: completedExercises,
@@ -584,16 +688,24 @@ function LogWorkoutContent() {
         {exercises.length > 0 && (
           <div className="pt-4">
             <Button
-              onClick={finishWorkout}
+              onClick={handleFinishPress}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={completedSets === 0 || isSaving}
             >
               <Check className="h-4 w-4 mr-2" />
-              Finish Workout
+              {isSaving ? "Saving…" : "Finish Workout"}
             </Button>
           </div>
         )}
       </main>
+
+      {showFinishModal && (
+        <FinishModal
+          initialName={workoutName}
+          onConfirm={finishWorkout}
+          onCancel={() => setShowFinishModal(false)}
+        />
+      )}
     </div>
   )
 }

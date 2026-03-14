@@ -377,8 +377,10 @@ export function ExerciseLogger({
               {showWeightColumn && (
                 <Input
                   type="number"
+                  inputMode="decimal"
+                  step="0.5"
                   value={set.weight || ""}
-                  onChange={(e) => updateSet(setIndex, "weight", Number.parseInt(e.target.value) || 0)}
+                  onChange={(e) => updateSet(setIndex, "weight", Number.parseFloat(e.target.value) || 0)}
                   placeholder={isOptionalWeight ? "+kg" : ""}
                   className="text-center h-8"
                   disabled={set.completed}

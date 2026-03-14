@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dumbbell, Play, Clock, CheckCircle } from "lucide-react"
-import { getWorkoutSessionSummary, hasActiveWorkoutSession } from "@/lib/workout-session-storage"
+import { Dumbbell, Play, Clock, CheckCircle, Trash2 } from "lucide-react"
+import { getWorkoutSessionSummary, hasActiveWorkoutSession, clearWorkoutSession } from "@/lib/workout-session-storage"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -46,6 +46,13 @@ export function WorkoutSessionNotification({ className = "" }: WorkoutSessionNot
   const resumeWorkout = () => {
     router.push('/log-workout')
     toast.success("🔄 Resuming your workout...")
+  }
+
+  const discardWorkout = () => {
+    if (!confirm("Discard this workout? All progress will be lost.")) return
+    clearWorkoutSession()
+    setSessionSummary(null)
+    toast.success("Workout discarded.")
   }
 
   if (!sessionSummary) {
@@ -127,14 +134,22 @@ export function WorkoutSessionNotification({ className = "" }: WorkoutSessionNot
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <div className="text-right">
+          <div className="flex items-center gap-2">
+            <div className="text-right mr-1">
               <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
                 {sessionSummary.progressPercentage}%
               </div>
               <div className="text-xs text-muted-foreground">Complete</div>
             </div>
-            <Button 
+            <Button
+              onClick={discardWorkout}
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button
               onClick={resumeWorkout}
               size="sm"
               className="bg-orange-500 hover:bg-orange-600 text-white"

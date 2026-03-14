@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Types } from "mongoose"
 import { auth } from "@/auth"
 import connectDB from "@/lib/mongoose"
 import { Workout } from "@/lib/models/workout"
+
+function isValidObjectId(id: string) {
+  return Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id
+}
 
 export async function GET() {
   try {
@@ -43,7 +48,8 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB()
-    const doc = await Workout.create({
+
+    const fields = {
       name: body.name,
       date: body.date,
       duration: Number(body.duration) || 0,
@@ -51,9 +57,23 @@ export async function POST(req: NextRequest) {
       totalSets: Number(body.totalSets) || 0,
       totalReps: Number(body.totalReps) || 0,
       totalWeight: Number(body.totalWeight) || 0,
+      usedTemplate: Boolean(body.usedTemplate),
+      usedAIGenerate: Boolean(body.usedAIGenerate),
       userId: session.user.id,
-    })
+    }
 
+    // If a valid ObjectId is provided, upsert — prevents duplicates when
+    // the same session is finished multiple times (back button, app resume, etc.)
+    if (body.id && isValidObjectId(body.id)) {
+      const doc = await Workout.findOneAndUpdate(
+        { _id: body.id, userId: session.user.id },
+        { $set: fields },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+      return NextResponse.json({ ...doc.toObject(), id: doc._id.toString() }, { status: 200 })
+    }
+
+    const doc = await Workout.create(fields)
     return NextResponse.json({ ...doc.toObject(), id: doc._id.toString() }, { status: 201 })
   } catch (err) {
     console.error("POST /api/workouts error:", err)
