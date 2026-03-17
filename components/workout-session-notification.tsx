@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dumbbell, Play, Clock, CheckCircle, Trash2 } from "lucide-react"
-import { getWorkoutSessionSummary, hasActiveWorkoutSession, clearWorkoutSession } from "@/lib/workout-session-storage"
+import { getWorkoutSessionSummary, hasActiveWorkoutSession, clearWorkoutSession, cleanupStaleWorkoutSession } from "@/lib/workout-session-storage"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -18,6 +18,9 @@ export function WorkoutSessionNotification({ className = "" }: WorkoutSessionNot
   const router = useRouter()
 
   useEffect(() => {
+    // Auto-discard sessions older than 24 hours
+    cleanupStaleWorkoutSession()
+
     // Check for active session on mount
     updateSessionSummary()
 

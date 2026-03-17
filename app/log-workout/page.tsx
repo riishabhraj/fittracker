@@ -22,6 +22,7 @@ import {
 } from "@/lib/workout-storage"
 import {
   clearWorkoutSession,
+  cleanupStaleWorkoutSession,
   getWorkoutSession,
   saveWorkoutSession,
   useWorkoutSessionAutoSave,
@@ -217,6 +218,9 @@ function LogWorkoutContent() {
       return
     }
 
+    // Clean up stale sessions (>24h old) before attempting resume
+    cleanupStaleWorkoutSession()
+
     const existingSession = getWorkoutSession()
 
     if (existingSession && !templateId) {
@@ -309,20 +313,38 @@ function LogWorkoutContent() {
   }, [templateId, source])
 
   // ── Auto-save session ────────────────────────────────────────────────────────
+  const flushSession = () => {
+    if (!sessionLoaded) return
+    saveSession({
+      workoutName,
+      exercises,
+      isWorkoutActive,
+      workoutStartTime: workoutStartTime?.toISOString() || null,
+      workoutDuration,
+      templateId,
+    })
+  }
+
   useEffect(() => {
     if (!sessionLoaded) return
-    const timeoutId = setTimeout(() => {
-      saveSession({
-        workoutName,
-        exercises,
-        isWorkoutActive,
-        workoutStartTime: workoutStartTime?.toISOString() || null,
-        workoutDuration,
-        templateId,
-      })
-    }, 1000)
+    const timeoutId = setTimeout(flushSession, 1000)
     return () => clearTimeout(timeoutId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutName, exercises, isWorkoutActive, workoutStartTime, workoutDuration, templateId, saveSession, sessionLoaded])
+
+  // Flush immediately when user switches tabs or leaves the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushSession()
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("beforeunload", flushSession)
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("beforeunload", flushSession)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workoutName, exercises, isWorkoutActive, workoutStartTime, workoutDuration, templateId, sessionLoaded])
 
   // ── Timer ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -450,7 +472,13 @@ function LogWorkoutContent() {
 
       // Use the stable workoutId from the active session so re-saves upsert
       // rather than create duplicate entries (back button, app resume, etc.)
-      const stableId = getWorkoutSession()?.workoutId ?? ""
+      const sessionSnapshot = getWorkoutSession()
+      const stableId = sessionSnapshot?.workoutId ?? ""
+
+      // Clear session BEFORE the API call so that if the app is killed mid-save
+      // or the user navigates away, the stale session won't be resumed as a new
+      // workout later. On API failure we restore the snapshot.
+      clearWorkoutSession()
 
       const workout: Workout = {
         id: stableId,
@@ -487,7 +515,6 @@ function LogWorkoutContent() {
       })
 
       await saveWorkout(workout)
-      clearWorkoutSession()
 
       const topExercise = completedExercises.reduce((top, ex) => {
         const vol = ex.sets.reduce((s, set) => s + set.weight * set.reps, 0)
@@ -511,6 +538,14 @@ function LogWorkoutContent() {
     } catch (error) {
       console.error("Error saving workout:", error)
       toast.error("Failed to save workout. Please try again.")
+      // Restore the session so the user can retry (keeps the same workoutId
+      // to guarantee the upsert deduplicates on the next attempt)
+      if (sessionSnapshot) {
+        localStorage.setItem(
+          "fittracker_active_workout_session",
+          JSON.stringify(sessionSnapshot)
+        )
+      }
       setIsSaving(false)
     }
   }
