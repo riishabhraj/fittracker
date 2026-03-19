@@ -11,13 +11,15 @@ import { GOAL_LABELS, EXPERIENCE_LABELS } from "@/lib/fitness-utils"
 type Goal = "muscle" | "fat_loss" | "strength" | "fitness"
 type Experience = "beginner" | "intermediate" | "advanced"
 type Equipment = "gym" | "home_gym" | "dumbbells"
+type Gender = "male" | "female"
 
 interface FitnessProfileCardProps {
   goal?: Goal
   experienceLevel?: Experience
   workoutDaysPerWeek?: number
   equipment?: Equipment
-  onUpdate: (data: Partial<{ goal: Goal; experienceLevel: Experience; workoutDaysPerWeek: number; equipment: Equipment }>) => void
+  gender?: Gender
+  onUpdate: (data: Partial<{ goal: Goal; experienceLevel: Experience; workoutDaysPerWeek: number; equipment: Equipment; gender: Gender }>) => void
 }
 
 const EQUIPMENT_LABELS: Record<Equipment, string> = {
@@ -65,17 +67,19 @@ export function FitnessProfileCard({
   experienceLevel: exp,
   workoutDaysPerWeek: days,
   equipment: eq,
+  gender: gen,
   onUpdate,
 }: FitnessProfileCardProps) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ goal: g, experienceLevel: exp, workoutDaysPerWeek: days, equipment: eq })
+  const [form, setForm] = useState({ goal: g, experienceLevel: exp, workoutDaysPerWeek: days, equipment: eq, gender: gen })
 
   const chips = [
     g   && GOAL_LABELS[g],
     exp && EXPERIENCE_LABELS[exp],
     days && `${days}× / week`,
     eq  && EQUIPMENT_LABELS[eq],
+    gen && (gen === "male" ? "♂ Male" : "♀ Female"),
   ].filter(Boolean) as string[]
 
   const save = async () => {
@@ -105,7 +109,7 @@ export function FitnessProfileCard({
             <h3 className="font-semibold text-foreground">Fitness Profile</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Goal, experience & preferences</p>
           </div>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setForm({ goal: g, experienceLevel: exp, workoutDaysPerWeek: days, equipment: eq }); setOpen(true) }}>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setForm({ goal: g, experienceLevel: exp, workoutDaysPerWeek: days, equipment: eq, gender: gen }); setOpen(true) }}>
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -164,6 +168,15 @@ export function FitnessProfileCard({
                 { value: "gym",       label: "🏋️ Full Gym" },
                 { value: "home_gym",  label: "🏠 Home Gym" },
                 { value: "dumbbells", label: "🥊 Dumbbells" },
+              ]}
+            />
+            <OptionRow
+              label="Anatomy (for heatmap)"
+              value={form.gender}
+              onChange={(v) => setForm((f) => ({ ...f, gender: v }))}
+              options={[
+                { value: "male",   label: "♂ Male" },
+                { value: "female", label: "♀ Female" },
               ]}
             />
             <div className="flex gap-2 pt-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Calendar, Target, Award, Download, Shield } from "lucide-react"
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
@@ -28,6 +28,14 @@ const TABS = [
 
 export default function ProgressPage() {
   const [activeTab, setActiveTab] = useState("overview")
+  const [gender, setGender] = useState<"male" | "female">("male")
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.ok ? r.json() : null)
+      .then((p) => { if (p?.gender) setGender(p.gender) })
+      .catch(() => {})
+  }, [])
 
   const handleExportData = async () => {
     try {
@@ -118,7 +126,7 @@ export default function ProgressPage() {
             <div className="space-y-6">
               <ProgressOverview />
               <WorkoutFrequencyChart />
-              <MuscleHeatmap />
+              <MuscleHeatmap gender={gender} />
               <PushPullLegsChart />
               <PersonalRecords />
             </div>

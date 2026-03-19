@@ -147,6 +147,7 @@ export default function ProfilePage() {
           experienceLevel={profile?.experienceLevel}
           workoutDaysPerWeek={profile?.workoutDaysPerWeek}
           equipment={profile?.equipment}
+          gender={profile?.gender}
           onUpdate={handleProfileUpdate}
         />
 

@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     age,
     workoutDaysPerWeek,
     equipment,
+    gender,
     onboardingCompleted,
     subjectiveEnergy,
   } = body
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
         ...(age !== undefined && { age }),
         ...(workoutDaysPerWeek !== undefined && { workoutDaysPerWeek }),
         ...(equipment !== undefined && { equipment }),
+        ...(gender !== undefined && { gender }),
         ...(onboardingCompleted !== undefined && { onboardingCompleted }),
         ...(subjectiveEnergy !== undefined && { subjectiveEnergy }),
       },

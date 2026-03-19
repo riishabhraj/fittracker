@@ -13,6 +13,7 @@ export interface FitnessProfile {
   age?: number
   workoutDaysPerWeek?: number
   equipment?: Equipment
+  gender?: "male" | "female"
   onboardingCompleted?: boolean
 }
 

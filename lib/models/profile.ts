@@ -19,6 +19,10 @@ const ProfileSchema = new Schema(
       type: String,
       enum: ["gym", "home_gym", "dumbbells"],
     },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+    },
     onboardingCompleted: { type: Boolean, default: false },
     subjectiveEnergy: { type: Number, min: 1, max: 10 },
     weightHistory: [
