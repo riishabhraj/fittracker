@@ -163,7 +163,7 @@ export function ProgressOverview() {
                   : stats.totalWeight
                 }
               </p>
-              <p className="text-xs text-green-500">lbs lifted</p>
+              <p className="text-xs text-green-500">kg lifted</p>
             </div>
           </div>
         </Card>

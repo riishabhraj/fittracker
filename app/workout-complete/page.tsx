@@ -95,7 +95,7 @@ function WorkoutCompleteContent() {
 
         {/* Stats grid */}
         <div className="w-full grid grid-cols-2 gap-3 mb-6">
-          <StatTile label="Volume" value={formatWeight(weight)} unit="lbs" />
+          <StatTile label="Volume" value={formatWeight(weight)} unit="kg" />
           <StatTile label="Duration" value={duration} unit="min" />
           <StatTile label="Sets" value={sets} />
           <StatTile label="Reps" value={reps} />

@@ -307,7 +307,7 @@ function PreviewExercisesDialog({ template }: { template: WorkoutTemplate }) {
                       {exercise.sets} × {exercise.reps}
                     </p>
                     {exercise.weight && (
-                      <p className="text-xs text-muted-foreground">{exercise.weight} lbs</p>
+                      <p className="text-xs text-muted-foreground">{exercise.weight} kg</p>
                     )}
                   </div>
                 </div>

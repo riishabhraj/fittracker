@@ -41,9 +41,9 @@ export const BADGES: BadgeDefinition[] = [
   { id: "pr_hunter",     name: "PR Hunter",      description: "Earn 5 personal records",            emoji: "🔨", category: "strength" },
   { id: "pr_machine",    name: "PR Machine",     description: "Earn 10 personal records",           emoji: "⚡", category: "strength" },
   { id: "pr_legend",     name: "PR Legend",      description: "Earn 25 personal records",           emoji: "🌟", category: "strength" },
-  { id: "lightweight",   name: "Lightweight",    description: "Lift 10,000 lbs total volume",       emoji: "🏋️", category: "strength" },
-  { id: "middleweight",  name: "Middleweight",   description: "Lift 50,000 lbs total volume",       emoji: "🦾", category: "strength" },
-  { id: "heavyweight",   name: "Heavyweight",    description: "Lift 100,000 lbs total volume",      emoji: "💥", category: "strength" },
+  { id: "lightweight",   name: "Lightweight",    description: "Lift 10,000 kg total volume",        emoji: "🏋️", category: "strength" },
+  { id: "middleweight",  name: "Middleweight",   description: "Lift 50,000 kg total volume",        emoji: "🦾", category: "strength" },
+  { id: "heavyweight",   name: "Heavyweight",    description: "Lift 100,000 kg total volume",       emoji: "💥", category: "strength" },
   // Effort
   { id: "endurance",     name: "Endurance",      description: "Complete a 60+ minute workout",      emoji: "⏱️", category: "effort" },
   { id: "volume_king",   name: "Volume King",    description: "Complete 20+ sets in one session",   emoji: "🧱", category: "effort" },
@@ -226,7 +226,7 @@ export function formatProgress(badgeId: string, progress: number, total: number)
     case "lightweight":
     case "middleweight":
     case "heavyweight":
-      return `${progress.toLocaleString()} / ${total.toLocaleString()} lbs`
+      return `${progress.toLocaleString()} / ${total.toLocaleString()} kg`
     case "endurance":
       return `${progress} / ${total} min (best session)`
     case "volume_king":

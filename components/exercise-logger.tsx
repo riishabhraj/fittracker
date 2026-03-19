@@ -28,6 +28,7 @@ interface Exercise {
   sets: Set[]
   supersetGroup?: string
   exerciseType?: ExerciseType
+  barbell?: boolean
 }
 
 export interface PersonalRecord {
@@ -75,6 +76,15 @@ export function ExerciseLogger({
       if (restTimerRef.current) clearInterval(restTimerRef.current)
     }
   }, [])
+
+  const [barbell, setBarbell] = useState(exercise.barbell ?? false)
+  const BAR_WEIGHT = 20 // standard Olympic bar in kg
+
+  const toggleBarbell = () => {
+    const next = !barbell
+    setBarbell(next)
+    onUpdate({ ...exercise, barbell: next })
+  }
 
   const exerciseType: ExerciseType = exercise.exerciseType ?? "weighted"
   const isBodyweight = exerciseType === "bodyweight"
@@ -148,22 +158,28 @@ export function ExerciseLogger({
   const completeSet = (setIndex: number) => {
     const set = exercise.sets[setIndex]
 
+    // Convert per-side weight to total for barbell exercises
+    const effectiveWeight = barbell && set.weight > 0
+      ? set.weight * 2 + BAR_WEIGHT
+      : set.weight
+
     const orm =
-      set.weight > 0 && set.reps > 0
-        ? calculateEpley1RM(set.weight, set.reps)
+      effectiveWeight > 0 && set.reps > 0
+        ? calculateEpley1RM(effectiveWeight, set.reps)
         : undefined
 
     const updatedSets = exercise.sets.map((s, i) =>
-      i === setIndex ? { ...s, completed: true, estimated1RM: orm } : s
+      i === setIndex ? { ...s, weight: effectiveWeight, completed: true, estimated1RM: orm } : s
     )
     onUpdate({ ...exercise, sets: updatedSets })
 
-    // PR detection
-    if (isNewPR(set)) {
+    // PR detection (use effective weight for comparison)
+    const effectiveSet = { ...set, weight: effectiveWeight }
+    if (isNewPR(effectiveSet)) {
       setPrSetIndices((prev) => new Set([...prev, setIndex]))
       const prLabel = isBodyweight
         ? `${exercise.name} — ${set.reps} reps`
-        : `${exercise.name} — ${set.weight} kg × ${set.reps}`
+        : `${exercise.name} — ${effectiveWeight} kg × ${set.reps}`
       toast(`🏆 New PR! ${prLabel}`, { duration: 4000 })
     }
 
@@ -243,6 +259,18 @@ export function ExerciseLogger({
               )}
               {isOptionalWeight && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">BW+</span>
+              )}
+              {showWeightColumn && !isOptionalWeight && (
+                <button
+                  onClick={toggleBarbell}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                    barbell
+                      ? "bg-orange-500/15 text-orange-400"
+                      : "bg-muted/20 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {barbell ? "BARBELL" : "BB"}
+                </button>
               )}
               {prLabel && (
                 <span className="text-xs text-muted-foreground">
@@ -343,7 +371,10 @@ export function ExerciseLogger({
         <div className="text-center">Set</div>
         <div className="text-center">Reps</div>
         {showWeightColumn && (
-          <div className="text-center">{isOptionalWeight ? "+Weight" : "Weight"}</div>
+          <div className="text-center">
+            {isOptionalWeight ? "+Weight" : "Weight"}
+            {barbell && <div className="text-[9px] text-orange-400">per side</div>}
+          </div>
         )}
         <div className="text-center">Best PR</div>
         <div className="text-center">✓</div>
@@ -375,16 +406,23 @@ export function ExerciseLogger({
               />
 
               {showWeightColumn && (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
-                  value={set.weight || ""}
-                  onChange={(e) => updateSet(setIndex, "weight", Number.parseFloat(e.target.value) || 0)}
-                  placeholder={isOptionalWeight ? "+kg" : ""}
-                  className="text-center h-8"
-                  disabled={set.completed}
-                />
+                <div>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.5"
+                    value={set.weight || ""}
+                    onChange={(e) => updateSet(setIndex, "weight", Number.parseFloat(e.target.value) || 0)}
+                    placeholder={isOptionalWeight ? "+kg" : ""}
+                    className="text-center h-8"
+                    disabled={set.completed}
+                  />
+                  {barbell && set.weight > 0 && !set.completed && (
+                    <div className="text-[9px] text-orange-400 text-center mt-0.5">
+                      = {set.weight * 2 + BAR_WEIGHT} kg
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Best PR column */}

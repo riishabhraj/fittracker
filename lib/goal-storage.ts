@@ -143,9 +143,9 @@ export const exportGoalData = async (): Promise<string> => {
 // ── Goal templates ────────────────────────────────────────────────────────────
 
 export const strengthGoalTemplates = [
-  { title: "Bench Press 135 lbs", description: "Achieve a 135 lb bench press", target: 135, unit: "lbs", exerciseName: "Bench Press", metric: "weight" as const, icon: "💪", color: "#ef4444" },
-  { title: "Squat Body Weight",    description: "Squat your body weight",       target: 150, unit: "lbs", exerciseName: "Squat",        metric: "weight" as const, icon: "🏋️", color: "#3b82f6" },
-  { title: "Deadlift 225 lbs",     description: "Achieve a 225 lb deadlift",   target: 225, unit: "lbs", exerciseName: "Deadlift",     metric: "weight" as const, icon: "💥", color: "#8b5cf6" },
+  { title: "Bench Press 60 kg",  description: "Achieve a 60 kg bench press",  target: 60,  unit: "kg", exerciseName: "Bench Press", metric: "weight" as const, icon: "💪", color: "#ef4444" },
+  { title: "Squat Body Weight",  description: "Squat your body weight",       target: 70,  unit: "kg", exerciseName: "Squat",        metric: "weight" as const, icon: "🏋️", color: "#3b82f6" },
+  { title: "Deadlift 100 kg",   description: "Achieve a 100 kg deadlift",   target: 100, unit: "kg", exerciseName: "Deadlift",     metric: "weight" as const, icon: "💥", color: "#8b5cf6" },
   { title: "100 Push-ups",         description: "Complete 100 push-ups",       target: 100, unit: "reps", exerciseName: "Push-up",     metric: "reps"   as const, icon: "⚡", color: "#f59e0b" },
 ]
 

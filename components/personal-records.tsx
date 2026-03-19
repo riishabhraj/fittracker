@@ -174,7 +174,7 @@ export function PersonalRecords({ showAll = false }: PersonalRecordsProps) {
               <div>
                 <h4 className="font-medium text-foreground">{record.exercise}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {record.weight} lbs × {record.reps} {record.reps === 1 ? "rep" : "reps"}
+                  {record.weight} kg × {record.reps} {record.reps === 1 ? "rep" : "reps"}
                 </p>
               </div>
             </div>
@@ -183,7 +183,7 @@ export function PersonalRecords({ showAll = false }: PersonalRecordsProps) {
               <div className="flex items-center space-x-2">
                 {record.improvement && record.improvement > 0 && (
                   <Badge variant="secondary" className="bg-green-500/10 text-green-500">
-                    +{record.improvement} lbs
+                    +{record.improvement} kg
                   </Badge>
                 )}
               </div>

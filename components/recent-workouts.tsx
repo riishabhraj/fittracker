@@ -109,7 +109,7 @@ export function RecentWorkouts() {
                         <span className="text-xs text-muted-foreground">
                           {totalWeight > 9999
                             ? `${(totalWeight / 1000).toFixed(1)}k`
-                            : totalWeight.toLocaleString()} lbs
+                            : totalWeight.toLocaleString()} kg
                         </span>
                       </div>
                     )}

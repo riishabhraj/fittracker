@@ -240,7 +240,7 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
                     id="title"
                     value={customGoal.title}
                     onChange={(e) => setCustomGoal(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="e.g., Bench press 150 lbs"
+                    placeholder="e.g., Bench press 60 kg"
                   />
                 </div>
 
@@ -272,7 +272,7 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
                       id="unit"
                       value={customGoal.unit}
                       onChange={(e) => setCustomGoal(prev => ({ ...prev, unit: e.target.value }))}
-                      placeholder="lbs"
+                      placeholder="kg"
                     />
                   </div>
                 </div>

@@ -263,7 +263,7 @@ export default function WorkoutsPage() {
               <div className="text-2xl font-bold text-foreground">
                 {totalWeight > 0 ? (totalWeight / 1000).toFixed(1) + 'k' : '0'}
               </div>
-              <div className="text-sm text-muted-foreground">Total Weight (lbs)</div>
+              <div className="text-sm text-muted-foreground">Total Weight (kg)</div>
             </div>
           </Card>
         </div>
@@ -317,7 +317,7 @@ export default function WorkoutsPage() {
                       </span>
                       <span className="whitespace-nowrap">{workout.exercises} exercises</span>
                       {workout.totalWeight > 0 && (
-                        <span className="whitespace-nowrap">{workout.totalWeight.toLocaleString()} lbs total</span>
+                        <span className="whitespace-nowrap">{workout.totalWeight.toLocaleString()} kg total</span>
                       )}
                     </div>
 

@@ -17,7 +17,7 @@ interface ProgressData {
 
 const chartConfig = {
   weight: {
-    label: "Weight (lbs)",
+    label: "Weight (kg)",
     color: "hsl(var(--primary))",
   },
 }
@@ -180,7 +180,7 @@ export function StrengthProgressChart() {
             <ChartTooltip 
               content={<ChartTooltipContent />}
               formatter={(value: any, name: string) => [
-                `${value} lbs`,
+                `${value} kg`,
                 'Weight'
               ]}
               labelFormatter={(label: string) => `Date: ${label}`}

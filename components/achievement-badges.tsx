@@ -68,7 +68,7 @@ export function AchievementBadges() {
         {
           id: "5",
           title: "Volume Victor",
-          description: "Lift 50,000 lbs total volume",
+          description: "Lift 50,000 kg total volume",
           icon: TrendingUp,
           earned: stats.totalWeight >= 50000,
           earnedDate: stats.totalWeight >= 50000 ? "Recently achieved" : undefined,

@@ -77,7 +77,7 @@ export function WorkoutStats() {
             value: stats.totalWeight > 9999
               ? `${(stats.totalWeight / 1000).toFixed(1)}k`
               : stats.totalWeight,
-            label: "lbs",
+            label: "kg",
             color: "#f59e0b",
             bg: "rgba(245,158,11,0.1)",
           },
