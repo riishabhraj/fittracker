@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Calendar, Target, Award, Download, Shield } from "lucide-react"
+import { TrendingUp, Calendar, Target, Award, FileText, Shield } from "lucide-react"
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
 import { StrengthProgressChart } from "@/components/strength-progress-chart"
 import { PersonalRecords } from "@/components/personal-records"
@@ -14,8 +14,7 @@ import { AchievementBadges } from "@/components/achievement-badges"
 import { ProgressOverview } from "@/components/progress-overview"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { BackButton } from "@/components/back-button"
-import { exportWorkoutData } from "@/lib/workout-storage"
-import { exportGoalData } from "@/lib/goal-storage"
+import { downloadPDFReport } from "@/lib/pdf-export"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -37,37 +36,19 @@ export default function ProgressPage() {
       .catch(() => {})
   }, [])
 
-  const handleExportData = async () => {
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportPDF = async () => {
     try {
-      const workoutData = JSON.parse(await exportWorkoutData())
-      const goalData = JSON.parse(await exportGoalData())
-      
-      // Combine both datasets
-      const combinedData = {
-        workouts: workoutData.workouts,
-        goals: goalData.goals,
-        exportDate: new Date().toISOString(),
-        version: '2.0.0',
-        app: 'FitTracker'
-      }
-      
-      const jsonString = JSON.stringify(combinedData, null, 2)
-      
-      // Create a blob and download the file
-      const blob = new Blob([jsonString], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `fittracker-export-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      toast.success("All data exported successfully!")
+      setExporting(true)
+      toast.info("Generating PDF report...")
+      await downloadPDFReport()
+      toast.success("PDF report downloaded!")
     } catch (error) {
-      console.error('Export failed:', error)
-      toast.error("Failed to export data. Please try again.")
+      console.error("PDF export failed:", error)
+      toast.error("Failed to generate PDF. Please try again.")
+    } finally {
+      setExporting(false)
     }
   }
   return (
@@ -84,9 +65,9 @@ export default function ProgressPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleExportData}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Data
+              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                <FileText className="h-4 w-4 mr-2" />
+                {exporting ? "Generating..." : "PDF Report"}
               </Button>
             </div>
           </div>
