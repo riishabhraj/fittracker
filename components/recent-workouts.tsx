@@ -75,9 +75,10 @@ export function RecentWorkouts() {
             const totalSets = workout.exercises.reduce((sum: number, ex: any) => sum + ex.sets.length, 0)
 
             return (
-              <div
+              <Link
                 key={workout.id}
-                className="rounded-xl border border-border overflow-hidden"
+                href={`/workouts/${workout.id}`}
+                className="block rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-colors"
                 style={{ borderLeft: "3px solid hsl(80 100% 50%)" }}
               >
                 <div className="p-3">
@@ -115,7 +116,7 @@ export function RecentWorkouts() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>

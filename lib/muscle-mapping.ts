@@ -61,6 +61,29 @@ export function computeMuscleVolumes(
 }
 
 /**
+ * Compute volume per muscle group for a single workout (no date filtering).
+ */
+export function computeSingleWorkoutVolumes(
+  workout: Workout
+): Partial<Record<MuscleGroup, number>> {
+  const volumes: Partial<Record<MuscleGroup, number>> = {}
+
+  for (const exercise of workout.exercises) {
+    const muscles = CATEGORY_TO_MUSCLES[exercise.category] ?? []
+    const vol = exercise.sets
+      .filter((s) => s.completed && s.weight > 0 && s.reps > 0)
+      .reduce((sum, s) => sum + s.weight * s.reps, 0)
+
+    if (vol === 0) continue
+    for (const m of muscles) {
+      volumes[m] = (volumes[m] ?? 0) + vol
+    }
+  }
+
+  return volumes
+}
+
+/**
  * Normalize volumes to a 0–1 scale for rendering intensity.
  * Returns 0 for muscles with no volume.
  */

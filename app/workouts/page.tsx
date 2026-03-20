@@ -293,55 +293,57 @@ export default function WorkoutsPage() {
             </Card>
           ) : (
             filteredWorkouts.map((workout) => (
-              <Card key={workout.id} className="p-6 bg-card border-border hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-foreground">{workout.name}</h3>
-                      {workout.personalRecords > 0 && (
-                        <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          {workout.personalRecords} PR{workout.personalRecords > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
+              <Link key={workout.id} href={`/workouts/${workout.id}`} className="block">
+                <Card className="p-6 bg-card border-border hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-foreground">{workout.name}</h3>
+                        {workout.personalRecords > 0 && (
+                          <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            {workout.personalRecords} PR{workout.personalRecords > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                      </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1 whitespace-nowrap">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        {formatDate(workout.date)}
-                      </span>
-                      <span className="flex items-center gap-1 whitespace-nowrap">
-                        <Clock className="h-4 w-4 shrink-0" />
-                        {workout.duration}
-                      </span>
-                      <span className="whitespace-nowrap">{workout.exercises} exercises</span>
-                      {workout.totalWeight > 0 && (
-                        <span className="whitespace-nowrap">{workout.totalWeight.toLocaleString()} kg total</span>
-                      )}
-                    </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-4">
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <Calendar className="h-4 w-4 shrink-0" />
+                          {formatDate(workout.date)}
+                        </span>
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <Clock className="h-4 w-4 shrink-0" />
+                          {workout.duration}
+                        </span>
+                        <span className="whitespace-nowrap">{workout.exercises} exercises</span>
+                        {workout.totalWeight > 0 && (
+                          <span className="whitespace-nowrap">{workout.totalWeight.toLocaleString()} kg total</span>
+                        )}
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <Link href="/log-workout">
-                        <Button size="sm" className="bg-primary hover:bg-primary/90">
-                          <Play className="h-4 w-4 mr-1" />
-                          Repeat Workout
-                        </Button>
-                      </Link>
-                      {workout.rawExercises.length > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSavingWorkout(workout)}
-                        >
-                          <BookmarkPlus className="h-4 w-4 mr-1" />
-                          Save as Template
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
+                        <Link href="/log-workout" onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" className="bg-primary hover:bg-primary/90">
+                            <Play className="h-4 w-4 mr-1" />
+                            Repeat Workout
+                          </Button>
+                        </Link>
+                        {workout.rawExercises.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setSavingWorkout(workout) }}
+                          >
+                            <BookmarkPlus className="h-4 w-4 mr-1" />
+                            Save as Template
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             ))
           )}
         </div>
