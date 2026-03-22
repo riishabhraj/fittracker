@@ -481,19 +481,6 @@ function LogWorkoutContent() {
       isFinishedRef.current = true
       clearWorkoutSession()
 
-      const workout: Workout = {
-        id: stableId,
-        name: confirmedName || "Untitled Workout",
-        date: (workoutStartTime || new Date()).toISOString(),
-        duration: workoutDuration,
-        exercises: completedExercises,
-        totalSets,
-        totalReps,
-        totalWeight,
-        usedTemplate: !!templateId,
-        usedAIGenerate: source === "ai",
-      }
-
       // PR detection using PRs loaded at session start
       const newPRNames: string[] = []
       completedExercises.forEach((ex) => {
@@ -514,6 +501,20 @@ function LogWorkoutContent() {
           (bestSet.weight === prev.weight && bestSet.reps > prev.reps)
         if (isPR) newPRNames.push(ex.name)
       })
+
+      const workout: Workout = {
+        id: stableId,
+        name: confirmedName || "Untitled Workout",
+        date: (workoutStartTime || new Date()).toISOString(),
+        duration: workoutDuration,
+        exercises: completedExercises,
+        totalSets,
+        totalReps,
+        totalWeight,
+        personalRecords: newPRNames.length,
+        usedTemplate: !!templateId,
+        usedAIGenerate: source === "ai",
+      }
 
       await saveWorkout(workout)
 

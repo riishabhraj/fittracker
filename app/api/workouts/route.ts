@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       totalSets: Number(body.totalSets) || 0,
       totalReps: Number(body.totalReps) || 0,
       totalWeight: Number(body.totalWeight) || 0,
+      personalRecords: Number(body.personalRecords) || 0,
       usedTemplate: Boolean(body.usedTemplate),
       usedAIGenerate: Boolean(body.usedAIGenerate),
       userId: session.user.id,
