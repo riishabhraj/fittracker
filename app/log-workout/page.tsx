@@ -147,6 +147,7 @@ function LogWorkoutContent() {
   const [sessionLoaded, setSessionLoaded] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showFinishModal, setShowFinishModal] = useState(false)
+  const isFinishedRef = useRef(false)
 
   // Single cache of all workouts — used for both PRs and suggestions
   const [existingPRs, setExistingPRs] = useState<
@@ -314,7 +315,7 @@ function LogWorkoutContent() {
 
   // ── Auto-save session ────────────────────────────────────────────────────────
   const flushSession = () => {
-    if (!sessionLoaded) return
+    if (!sessionLoaded || isFinishedRef.current) return
     saveSession({
       workoutName,
       exercises,
@@ -475,9 +476,9 @@ function LogWorkoutContent() {
       const sessionSnapshot = getWorkoutSession()
       const stableId = sessionSnapshot?.workoutId ?? ""
 
-      // Clear session BEFORE the API call so that if the app is killed mid-save
-      // or the user navigates away, the stale session won't be resumed as a new
-      // workout later. On API failure we restore the snapshot.
+      // Prevent the debounced auto-save from re-writing the session after we
+      // clear it — otherwise the 1s timeout races and resurrects the session.
+      isFinishedRef.current = true
       clearWorkoutSession()
 
       const workout: Workout = {
@@ -540,6 +541,7 @@ function LogWorkoutContent() {
       toast.error("Failed to save workout. Please try again.")
       // Restore the session so the user can retry (keeps the same workoutId
       // to guarantee the upsert deduplicates on the next attempt)
+      isFinishedRef.current = false
       if (sessionSnapshot) {
         localStorage.setItem(
           "fittracker_active_workout_session",
@@ -557,10 +559,12 @@ function LogWorkoutContent() {
       )
       if (hasData) {
         if (confirm("⚠️ Are you sure you want to cancel? All progress will be lost.")) {
+          isFinishedRef.current = true
           clearWorkoutSession()
           router.push("/")
         }
       } else {
+        isFinishedRef.current = true
         clearWorkoutSession()
         router.push("/")
       }

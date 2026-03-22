@@ -180,14 +180,14 @@ export default function WorkoutDetailPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground text-center mb-1 uppercase tracking-widest">Front</p>
-                <div className="flex justify-center" style={{ height: 260 }}>
-                  <FrontBody v={volumes} />
+                <div className="flex justify-center" style={{ height: 340 }}>
+                  <FrontBody v={volumes} showIdle />
                 </div>
               </div>
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground text-center mb-1 uppercase tracking-widest">Back</p>
-                <div className="flex justify-center" style={{ height: 260 }}>
-                  <BackBody v={volumes} />
+                <div className="flex justify-center" style={{ height: 340 }}>
+                  <BackBody v={volumes} showIdle />
                 </div>
               </div>
             </div>

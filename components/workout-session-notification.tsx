@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Dumbbell, Play, Clock, CheckCircle, Trash2 } from "lucide-react"
+import { Dumbbell, Play, Clock, ChevronRight, Trash2, AlertCircle } from "lucide-react"
 import { getWorkoutSessionSummary, hasActiveWorkoutSession, clearWorkoutSession, cleanupStaleWorkoutSession } from "@/lib/workout-session-storage"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -15,16 +13,13 @@ interface WorkoutSessionNotificationProps {
 
 export function WorkoutSessionNotification({ className = "" }: WorkoutSessionNotificationProps) {
   const [sessionSummary, setSessionSummary] = useState<ReturnType<typeof getWorkoutSessionSummary>>(null)
+  const [confirming, setConfirming] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    // Auto-discard sessions older than 24 hours
     cleanupStaleWorkoutSession()
-
-    // Check for active session on mount
     updateSessionSummary()
 
-    // Listen for session changes
     const handleSessionChange = () => {
       updateSessionSummary()
     }
@@ -48,130 +43,119 @@ export function WorkoutSessionNotification({ className = "" }: WorkoutSessionNot
 
   const resumeWorkout = () => {
     router.push('/log-workout')
-    toast.success("🔄 Resuming your workout...")
   }
 
   const discardWorkout = () => {
-    if (!confirm("Discard this workout? All progress will be lost.")) return
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
     clearWorkoutSession()
     setSessionSummary(null)
-    toast.success("Workout discarded.")
+    setConfirming(false)
+    toast.success("Workout discarded")
   }
+
+  useEffect(() => {
+    if (!confirming) return
+    const t = setTimeout(() => setConfirming(false), 3000)
+    return () => clearTimeout(t)
+  }, [confirming])
 
   if (!sessionSummary) {
     return null
   }
 
   const formatDuration = (minutes: number) => {
-    if (minutes < 60) {
-      return `${minutes}m`
-    }
+    if (minutes < 1) return "0m"
+    if (minutes < 60) return `${minutes}m`
     const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
-    return `${hours}h ${remainingMinutes}m`
+    const rem = minutes % 60
+    return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`
   }
 
   const formatTimeAgo = (timestamp: string) => {
-    const now = new Date()
-    const lastModified = new Date(timestamp)
-    const minutesAgo = Math.floor((now.getTime() - lastModified.getTime()) / (1000 * 60))
-    
-    if (minutesAgo < 1) return 'Just now'
+    const minutesAgo = Math.floor((Date.now() - new Date(timestamp).getTime()) / (1000 * 60))
+    if (minutesAgo < 1) return "Just now"
     if (minutesAgo < 60) return `${minutesAgo}m ago`
-    
     const hoursAgo = Math.floor(minutesAgo / 60)
     if (hoursAgo < 24) return `${hoursAgo}h ago`
-    
-    const daysAgo = Math.floor(hoursAgo / 24)
-    return `${daysAgo}d ago`
+    return `${Math.floor(hoursAgo / 24)}d ago`
   }
 
+  const pct = sessionSummary.progressPercentage
+
   return (
-    <Card className={`bg-gradient-to-r from-orange-500/10 to-orange-600/5 border-orange-200 dark:border-orange-800 ${className}`}>
+    <div className={`rounded-2xl overflow-hidden border border-border bg-card ${className}`}>
+      {/* Top accent bar */}
+      <div className="h-1" style={{ background: "linear-gradient(to right, hsl(80 100% 50%), hsl(80 100% 35%))" }} />
+
       <div className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="p-2 bg-orange-500/20 rounded-lg">
-                <Dumbbell className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: "rgba(170,255,0,0.12)" }}>
+                <Dumbbell className="h-4 w-4" style={{ color: "hsl(80 100% 50%)" }} />
               </div>
               {sessionSummary.isActive && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: "hsl(80 100% 50%)" }} />
               )}
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="font-semibold text-foreground">
-                  {sessionSummary.workoutName}
-                </h3>
-                <Badge variant={sessionSummary.isActive ? "default" : "secondary"} className="text-xs">
-                  {sessionSummary.isActive ? (
-                    <>
-                      <Play className="h-3 w-3 mr-1" />
-                      Active
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="h-3 w-3 mr-1" />
-                      Paused
-                    </>
-                  )}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                <span>{sessionSummary.exerciseCount} exercises</span>
-                <span className="flex items-center">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  {sessionSummary.completedSets}/{sessionSummary.totalSets} sets
-                </span>
-                {sessionSummary.duration > 0 && (
-                  <span className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatDuration(sessionSummary.duration)}
-                  </span>
-                )}
-                <span className="text-xs">
-                  {formatTimeAgo(sessionSummary.lastModified)}
-                </span>
-              </div>
+              <h3 className="font-semibold text-foreground text-sm leading-tight">
+                {sessionSummary.workoutName}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {formatTimeAgo(sessionSummary.lastModified)}
+                {sessionSummary.duration > 0 && ` · ${formatDuration(sessionSummary.duration)}`}
+              </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="text-right mr-1">
-              <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                {sessionSummary.progressPercentage}%
-              </div>
-              <div className="text-xs text-muted-foreground">Complete</div>
-            </div>
-            <Button
-              onClick={discardWorkout}
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={resumeWorkout}
-              size="sm"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              Resume
-            </Button>
+
+          <button
+            onClick={discardWorkout}
+            className="p-1.5 rounded-lg text-muted-foreground transition-colors"
+            style={confirming ? { color: "hsl(0 70% 55%)", backgroundColor: "rgba(220,50,50,0.1)" } : {}}
+            title={confirming ? "Tap again to confirm" : "Discard workout"}
+          >
+            {confirming ? <AlertCircle className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+          </button>
+        </div>
+
+        {/* Stats + progress */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{sessionSummary.exerciseCount} exercises</span>
+            <span>{sessionSummary.completedSets}/{sessionSummary.totalSets} sets</span>
+            <span className="font-medium" style={{ color: pct > 0 ? "hsl(80 100% 50%)" : undefined }}>
+              {pct}%
+            </span>
           </div>
         </div>
-        
+
         {/* Progress bar */}
-        <div className="mt-3">
-          <div className="w-full bg-orange-100 dark:bg-orange-900/30 rounded-full h-2">
-            <div 
-              className="bg-orange-500 h-2 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${sessionSummary.progressPercentage}%` }}
-            />
-          </div>
+        <div className="w-full rounded-full h-1.5 mb-3" style={{ backgroundColor: "hsl(0 0% 16%)" }}>
+          <div
+            className="h-1.5 rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.max(pct, 2)}%`,
+              background: "linear-gradient(to right, hsl(80 100% 50%), hsl(80 100% 40%))",
+            }}
+          />
         </div>
+
+        {/* Resume button */}
+        <Button
+          onClick={resumeWorkout}
+          className="w-full h-10 font-semibold text-sm"
+          style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+        >
+          <Play className="h-4 w-4 mr-1.5" />
+          Resume Workout
+          <ChevronRight className="h-4 w-4 ml-auto" />
+        </Button>
       </div>
-    </Card>
+    </div>
   )
 }
