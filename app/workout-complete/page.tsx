@@ -3,11 +3,13 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Sparkles, Flame, Home, Trophy, Share2 } from "lucide-react"
+import { Plus, Sparkles, Flame, Home, Trophy, Share2, Lock, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { getWorkoutStats } from "@/lib/workout-storage"
 import { ShareCard } from "@/components/share-card"
 import { shareWorkoutCard } from "@/lib/share-utils"
+import { useSubscription } from "@/hooks/use-subscription"
+import { UpgradeModal } from "@/components/upgrade-modal"
 
 // ─── AI suggestion (rule-based) ───────────────────────────────────────────────
 
@@ -45,8 +47,10 @@ function formatWeight(w: number): string {
 function WorkoutCompleteContent() {
   const params = useSearchParams()
   const router = useRouter()
+  const { isPro } = useSubscription()
   const [streak, setStreak] = useState(0)
   const [sharing, setSharing] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
 
   const name         = params.get("name")     ?? "Workout"
@@ -141,13 +145,47 @@ function WorkoutCompleteContent() {
         )}
 
         {/* AI suggestion card */}
-        <div className="w-full rounded-2xl border border-border bg-card p-5 mb-8">
+        <div className="w-full rounded-2xl border border-border bg-card p-5 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <p className="text-xs font-semibold text-primary uppercase tracking-widest">AI Suggestion</p>
           </div>
           <p className="text-sm text-foreground leading-relaxed">{suggestion}</p>
         </div>
+
+        {/* Post-workout Pro upgrade trigger (free users only) */}
+        {!isPro && (prCount > 0 || topExercise) && (
+          <div
+            className="w-full rounded-2xl border p-5 mb-8 cursor-pointer"
+            style={{ borderColor: "hsl(80 100% 50% / 0.25)", backgroundColor: "hsl(80 100% 50% / 0.05)" }}
+            onClick={() => setShowUpgrade(true)}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4" style={{ color: "hsl(80 100% 50%)" }} />
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "hsl(80 100% 50%)" }}>
+                Strength Analysis
+              </p>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">
+              {prCount > 0
+                ? `You hit ${prCount} PR${prCount > 1 ? "s" : ""} today. See how your strength is trending long-term.`
+                : `You trained ${topExercise} today. See how it fits into your progress curve.`}
+            </p>
+            <div className="flex items-center gap-1.5 mt-3 text-xs font-semibold" style={{ color: "hsl(80 100% 50%)" }}>
+              <Lock className="h-3 w-3" />
+              Unlock full analysis → Upgrade to Pro
+            </div>
+          </div>
+        )}
+
+        {/* Pro users: spacer */}
+        {(isPro || (!prCount && !topExercise)) && <div className="mb-4" />}
+
+        <UpgradeModal
+          open={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          reason={prCount > 0 ? `You hit ${prCount} PR${prCount > 1 ? "s" : ""} today 🔥 See your long-term strength curve and get AI-driven targets to keep breaking records.` : "You showed up today 💪 See how you're improving over time with full strength analysis."}
+        />
 
         {/* Actions */}
         <div className="w-full space-y-3">

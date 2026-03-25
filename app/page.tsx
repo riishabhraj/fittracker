@@ -18,6 +18,11 @@ import Link from "next/link"
 import { PlateauAlertCard } from "@/components/plateau-alert-card"
 import { ReadinessScoreCard } from "@/components/readiness-score-card"
 import { NewBadgeNotifier } from "@/components/new-badge-notifier"
+import { TrialBanner } from "@/components/trial-banner"
+import { TrialExpiredModal } from "@/components/trial-expired-modal"
+import { StreakProtectionBanner } from "@/components/streak-protection-banner"
+import { useSubscription } from "@/hooks/use-subscription"
+import { UpgradeModal } from "@/components/upgrade-modal"
 import {
   getInsight,
   getAICoachTip,
@@ -49,7 +54,9 @@ export default function HomePage() {
   const [profile, setProfile] = useState<FitnessProfile | null>(null)
   const [streak, setStreak] = useState(0)
   const [totalWorkouts, setTotalWorkouts] = useState(0)
+  const [weeklyUpgradeOpen, setWeeklyUpgradeOpen] = useState(false)
   const { data: session } = useSession()
+  const { isPro } = useSubscription()
   const router = useRouter()
 
   useEffect(() => {
@@ -95,9 +102,16 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <ClientInstallPrompts />
       <OfflineIndicator />
+      <TrialExpiredModal />
+      <UpgradeModal
+        open={weeklyUpgradeOpen}
+        onClose={() => setWeeklyUpgradeOpen(false)}
+        reason="You showed up this week 💪 — see exactly how your volume, sets, and intensity compare to your targets."
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <TrialBanner />
         <div className="px-5 pt-4 pb-5">
           <div className="flex items-start justify-between">
             <div>
@@ -236,11 +250,51 @@ export default function HomePage() {
           /* ── Returning user dashboard ── */
           <div className="space-y-6">
             <NewBadgeNotifier />
+            {/* Streak protection */}
+            <StreakProtectionBanner />
             {/* Readiness score */}
             <ReadinessScoreCard />
 
             {/* Stats */}
             <WorkoutStats />
+
+            {/* Weekly breakdown lock — free users only */}
+            {!isPro && (
+              <button
+                type="button"
+                onClick={() => setWeeklyUpgradeOpen(true)}
+                className="w-full rounded-2xl border p-4 flex items-center gap-4 active:scale-[0.98] transition-transform text-left"
+                style={{ backgroundColor: "hsl(0 0% 11%)", borderColor: "hsl(0 0% 18%)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-4 w-4" style={{ color: "hsl(80 100% 50%)" }} />
+                    <p className="text-sm font-semibold text-foreground">Full Weekly Breakdown</p>
+                  </div>
+                  <div className="space-y-1.5 select-none">
+                    {["Volume by muscle group", "Sets vs. target", "Intensity trends"].map((label) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <div className="h-1.5 rounded-full flex-1 overflow-hidden bg-border">
+                          <div className="h-1.5 rounded-full bg-border w-3/5 blur-[3px]" />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground blur-[3px] select-none">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="shrink-0 flex flex-col items-center gap-1">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: "hsl(80 100% 50% / 0.15)" }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "hsl(80 100% 50%)" }}>
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-semibold" style={{ color: "hsl(80 100% 50%)" }}>Pro</span>
+                </div>
+              </button>
+            )}
 
             {/* Weekly calendar */}
             <WeeklyCalendar />

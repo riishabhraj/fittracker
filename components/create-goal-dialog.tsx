@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card"
 import { Plus, Target, TrendingUp, Calendar, Dumbbell } from "lucide-react"
 import { saveGoal, generateId, strengthGoalTemplates, habitGoalTemplates, Goal } from "@/lib/goal-storage"
+import { UpgradeModal } from "@/components/upgrade-modal"
 import { toast } from "sonner"
 
 interface CreateGoalDialogProps {
@@ -20,6 +21,7 @@ interface CreateGoalDialogProps {
 
 export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGoalDialogProps) {
   const [open, setOpen] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [selectedType, setSelectedType] = useState<'strength' | 'habit'>(goalType || 'strength')
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [customGoal, setCustomGoal] = useState({
@@ -66,11 +68,16 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
       ;(goal as any).streak = 0
     }
 
-    await saveGoal(goal)
-    toast.success(`Goal "${goal.title}" created successfully!`)
-    setOpen(false)
-    setSelectedTemplate(null)
-    onGoalCreated?.()
+    try {
+      await saveGoal(goal)
+      toast.success(`Goal "${goal.title}" created!`)
+      setOpen(false)
+      setSelectedTemplate(null)
+      onGoalCreated?.()
+    } catch (err: any) {
+      if (err.message === "GOAL_LIMIT") { setOpen(false); setShowUpgrade(true) }
+      else toast.error(err.message ?? "Failed to create goal")
+    }
   }
 
   const handleCreateCustom = async () => {
@@ -102,19 +109,17 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
       ;(goal as any).streak = 0
     }
 
-    await saveGoal(goal)
-    toast.success(`Goal "${goal.title}" created successfully!`)
-    setOpen(false)
-    setShowCustomForm(false)
-    setCustomGoal({
-      title: '',
-      description: '',
-      target: '',
-      unit: '',
-      exerciseName: '',
-      frequency: 'weekly'
-    })
-    onGoalCreated?.()
+    try {
+      await saveGoal(goal)
+      toast.success(`Goal "${goal.title}" created!`)
+      setOpen(false)
+      setShowCustomForm(false)
+      setCustomGoal({ title: '', description: '', target: '', unit: '', exerciseName: '', frequency: 'weekly' })
+      onGoalCreated?.()
+    } catch (err: any) {
+      if (err.message === "GOAL_LIMIT") { setOpen(false); setShowUpgrade(true) }
+      else toast.error(err.message ?? "Failed to create goal")
+    }
   }
 
   const resetDialog = () => {
@@ -131,6 +136,12 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
   }
 
   return (
+    <>
+    <UpgradeModal
+      open={showUpgrade}
+      onClose={() => setShowUpgrade(false)}
+      reason="You're serious about your progress 🔥 Track unlimited goals and stay consistent."
+    />
     <Dialog open={open} onOpenChange={(newOpen) => {
       setOpen(newOpen)
       if (!newOpen) resetDialog()
@@ -317,5 +328,6 @@ export function CreateGoalDialog({ children, goalType, onGoalCreated }: CreateGo
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

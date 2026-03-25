@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Calendar, Target, Award, FileText, Shield } from "lucide-react"
+import { TrendingUp, Calendar, Target, FileText, Shield, Lock, Flag, CheckCircle2, Circle } from "lucide-react"
 import { WorkoutFrequencyChart } from "@/components/workout-frequency-chart"
 import { StrengthProgressChart } from "@/components/strength-progress-chart"
 import { PersonalRecords } from "@/components/personal-records"
@@ -10,24 +10,30 @@ import { OneRMHistoryChart } from "@/components/one-rm-history-chart"
 import { MuscleHeatmap } from "@/components/muscle-heatmap"
 import { PushPullLegsChart } from "@/components/push-pull-legs-chart"
 import { BodyMeasurements } from "@/components/body-measurements"
-import { AchievementBadges } from "@/components/achievement-badges"
 import { ProgressOverview } from "@/components/progress-overview"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { BackButton } from "@/components/back-button"
+import { AIInsightPreviewCard } from "@/components/ai-insight-preview-card"
+import { PlateauPreviewCard } from "@/components/plateau-preview-card"
+import { UpgradeModal } from "@/components/upgrade-modal"
+import { useSubscription } from "@/hooks/use-subscription"
 import { downloadPDFReport } from "@/lib/pdf-export"
+import { getGoals, type Goal } from "@/lib/goal-storage"
 import { toast } from "sonner"
 import Link from "next/link"
 
 const TABS = [
-  { value: "overview",      label: "Overview",  icon: TrendingUp },
-  { value: "strength",      label: "Strength",  icon: Target },
-  { value: "body",          label: "Body",      icon: Calendar },
-  { value: "achievements",  label: "Awards",    icon: Award },
+  { value: "overview",  label: "Overview",  icon: TrendingUp },
+  { value: "strength",  label: "Strength",  icon: Target },
+  { value: "body",      label: "Body",      icon: Calendar },
+  { value: "goals",     label: "Goals",     icon: Flag },
 ]
 
 export default function ProgressPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [gender, setGender] = useState<"male" | "female">("male")
+  const [showPdfUpgrade, setShowPdfUpgrade] = useState(false)
+  const { isPro } = useSubscription()
 
   useEffect(() => {
     fetch("/api/profile")
@@ -37,8 +43,19 @@ export default function ProgressPage() {
   }, [])
 
   const [exporting, setExporting] = useState(false)
+  const [goals, setGoals] = useState<Goal[]>([])
+
+  useEffect(() => {
+    getGoals().then(setGoals).catch(() => {})
+    window.addEventListener("goalDataChanged", () => getGoals().then(setGoals).catch(() => {}))
+    return () => window.removeEventListener("goalDataChanged", () => {})
+  }, [])
 
   const handleExportPDF = async () => {
+    if (!isPro) {
+      setShowPdfUpgrade(true)
+      return
+    }
     try {
       setExporting(true)
       toast.info("Generating PDF report...")
@@ -66,7 +83,11 @@ export default function ProgressPage() {
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-                <FileText className="h-4 w-4 mr-2" />
+                {isPro ? (
+                  <FileText className="h-4 w-4 mr-2" />
+                ) : (
+                  <Lock className="h-4 w-4 mr-2" />
+                )}
                 {exporting ? "Generating..." : "PDF Report"}
               </Button>
             </div>
@@ -106,9 +127,11 @@ export default function ProgressPage() {
           {activeTab === "overview" && (
             <div className="space-y-6">
               <ProgressOverview />
+              <AIInsightPreviewCard />
               <WorkoutFrequencyChart />
               <MuscleHeatmap gender={gender} />
               <PushPullLegsChart />
+              <PlateauPreviewCard />
               <PersonalRecords />
             </div>
           )}
@@ -124,12 +147,102 @@ export default function ProgressPage() {
               <BodyMeasurements />
             </div>
           )}
-          {activeTab === "achievements" && (
-            <div className="space-y-6">
-              <AchievementBadges />
+          {activeTab === "goals" && (
+            <div className="space-y-4">
+              {goals.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <span className="text-5xl mb-4">🎯</span>
+                  <p className="font-semibold text-foreground text-lg">No goals yet</p>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xs">Set your first goal to start tracking progress.</p>
+                  <Link href="/goals">
+                    <button
+                      className="mt-5 px-6 py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+                      style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+                    >
+                      Add a Goal
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  {/* Summary row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-card border border-border p-4 text-center">
+                      <p className="text-2xl font-bold text-foreground">{goals.filter(g => !g.completed).length}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Active</p>
+                    </div>
+                    <div className="rounded-2xl bg-card border border-border p-4 text-center">
+                      <p className="text-2xl font-bold" style={{ color: "hsl(80 100% 50%)" }}>{goals.filter(g => g.completed).length}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
+                    </div>
+                  </div>
+
+                  {/* Active goals */}
+                  {goals.filter(g => !g.completed).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">In Progress</p>
+                      <div className="space-y-3">
+                        {goals.filter(g => !g.completed).map(goal => {
+                          const pct = Math.min(100, Math.round((goal.current / goal.target) * 100))
+                          return (
+                            <div key={goal.id} className="rounded-2xl bg-card border border-border p-4">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="text-xl shrink-0">{goal.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">{goal.title}</p>
+                                  {goal.description && <p className="text-xs text-muted-foreground leading-snug">{goal.description}</p>}
+                                </div>
+                                <span className="text-xs font-bold shrink-0" style={{ color: "hsl(80 100% 50%)" }}>{pct}%</span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
+                                <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: "hsl(80 100% 50%)" }} />
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-1.5">
+                                {goal.current} / {goal.target} {goal.unit}
+                                {goal.targetDate && ` · Due ${new Date(goal.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                              </p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Completed goals */}
+                  {goals.filter(g => g.completed).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Completed</p>
+                      <div className="space-y-2">
+                        {goals.filter(g => g.completed).map(goal => (
+                          <div key={goal.id} className="rounded-2xl bg-card border border-border p-4 flex items-center gap-3 opacity-70">
+                            <span className="text-xl shrink-0">{goal.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{goal.title}</p>
+                              <p className="text-xs text-muted-foreground">{goal.target} {goal.unit} · Completed</p>
+                            </div>
+                            <CheckCircle2 className="h-5 w-5 shrink-0" style={{ color: "hsl(80 100% 50%)" }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Link href="/goals">
+                    <button className="w-full py-3 rounded-2xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+                      Manage Goals →
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>
+
+        <UpgradeModal
+          open={showPdfUpgrade}
+          onClose={() => setShowPdfUpgrade(false)}
+          reason="You've been training consistently. Export your full progress history as a shareable PDF report."
+        />
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-border">

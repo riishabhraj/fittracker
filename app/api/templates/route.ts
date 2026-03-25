@@ -36,6 +36,24 @@ export async function POST(req: Request) {
   }
 
   await connectDB()
+
+  // Free users (not on Pro plan and not in active trial) are limited to 3 templates
+  const isPro =
+    session.user.plan === "pro" ||
+    (session.user.plan === "free" &&
+      session.user.trialEndsAt != null &&
+      new Date(session.user.trialEndsAt) > new Date())
+
+  if (!isPro) {
+    const count = await Template.countDocuments({ userId: session.user.id })
+    if (count >= 3) {
+      return NextResponse.json(
+        { error: "Free plan is limited to 3 saved templates. Upgrade to Pro for unlimited.", code: "TEMPLATE_LIMIT" },
+        { status: 402 }
+      )
+    }
+  }
+
   const template = await Template.create({
     userId: session.user.id,
     name: name.trim(),

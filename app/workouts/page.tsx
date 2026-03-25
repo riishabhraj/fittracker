@@ -12,6 +12,7 @@ import { BackButton } from "@/components/back-button"
 import Link from "next/link"
 import { getWorkouts } from "@/lib/workout-storage"
 import { toast } from "sonner"
+import { UpgradeModal } from "@/components/upgrade-modal"
 
 interface RawExercise {
   id: string
@@ -64,9 +65,11 @@ function isThisMonth(date: Date): boolean {
 function SaveAsTemplateDialog({
   workout,
   onClose,
+  onUpgradeRequired,
 }: {
   workout: Workout
   onClose: () => void
+  onUpgradeRequired: () => void
 }) {
   const [name, setName] = useState(workout.name)
   const [saving, setSaving] = useState(false)
@@ -88,6 +91,11 @@ function SaveAsTemplateDialog({
           })),
         }),
       })
+      if (res.status === 402) {
+        onClose()
+        onUpgradeRequired()
+        return
+      }
       if (!res.ok) throw new Error()
       toast.success("Template saved! Find it in My Templates.")
       onClose()
@@ -142,6 +150,7 @@ export default function WorkoutsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("All")
   const [filteredWorkouts, setFilteredWorkouts] = useState<Workout[]>([])
   const [savingWorkout, setSavingWorkout] = useState<Workout | null>(null)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   useEffect(() => {
     const loadWorkouts = async () => {
@@ -355,8 +364,15 @@ export default function WorkoutsPage() {
         <SaveAsTemplateDialog
           workout={savingWorkout}
           onClose={() => setSavingWorkout(null)}
+          onUpgradeRequired={() => setShowUpgrade(true)}
         />
       )}
+
+      <UpgradeModal
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        reason="You've built 3 workout plans — you're clearly serious. Keep progressing without limits."
+      />
     </div>
   )
 }

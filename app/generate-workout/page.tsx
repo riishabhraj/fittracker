@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BackButton } from "@/components/back-button"
-import { Sparkles, Dumbbell, ChevronRight, RotateCcw } from "lucide-react"
+import { Sparkles, Dumbbell, ChevronRight, RotateCcw, Lock } from "lucide-react"
 import { toast } from "sonner"
+import { useSubscription } from "@/hooks/use-subscription"
+import { UpgradeModal } from "@/components/upgrade-modal"
 
 // ─── Form config ──────────────────────────────────────────────────────────────
 
@@ -96,6 +98,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function GenerateWorkoutPage() {
   const router = useRouter()
+  const { isPro } = useSubscription()
 
   const [goal, setGoal] = useState("Build Muscle")
   const [duration, setDuration] = useState(45)
@@ -104,6 +107,8 @@ export default function GenerateWorkoutPage() {
   const [difficulty, setDifficulty] = useState("Intermediate")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AIWorkout | null>(null)
+  const [aiLocked, setAiLocked] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const toggleMuscle = (m: string) =>
     setSelectedMuscles((prev) =>
@@ -126,8 +131,9 @@ export default function GenerateWorkoutPage() {
         }),
       })
 
-      if (res.status === 429) {
-        toast.error("Daily limit reached (10 AI workouts/day). Try again tomorrow.")
+      if (res.status === 402) {
+        setAiLocked(true)
+        setShowUpgrade(true)
         return
       }
       if (res.status === 503) {
@@ -259,24 +265,50 @@ export default function GenerateWorkoutPage() {
         </Card>
 
         {/* Generate button */}
-        <Button
-          className="w-full h-13 text-base font-semibold"
-          style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
-          onClick={generate}
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-[hsl(0_0%_6%)] border-t-transparent rounded-full animate-spin" />
-              Generating…
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
+        {aiLocked && !isPro ? (
+          <div className="space-y-3">
+            <div className="w-full rounded-2xl p-4 text-center space-y-2 border border-dashed"
+              style={{ borderColor: "hsl(80 100% 50% / 0.3)", backgroundColor: "hsl(80 100% 50% / 0.05)" }}
+            >
+              <Lock className="h-6 w-6 mx-auto" style={{ color: "hsl(80 100% 50%)" }} />
+              <p className="text-sm font-semibold text-foreground">Free AI use spent</p>
+              <p className="text-xs text-muted-foreground">Upgrade to Pro for unlimited AI workout generation.</p>
+            </div>
+            <Button
+              className="w-full h-13 text-base font-semibold flex items-center gap-2"
+              style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+              onClick={() => setShowUpgrade(true)}
+            >
               <Sparkles className="h-5 w-5" />
-              Generate Workout
-            </span>
-          )}
-        </Button>
+              Upgrade to Pro
+            </Button>
+          </div>
+        ) : (
+          <Button
+            className="w-full h-13 text-base font-semibold"
+            style={{ backgroundColor: "hsl(80 100% 50%)", color: "hsl(0 0% 6%)" }}
+            onClick={generate}
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-[hsl(0_0%_6%)] border-t-transparent rounded-full animate-spin" />
+                Generating…
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                {!isPro ? "Generate Workout (1 free use)" : "Generate Workout"}
+              </span>
+            )}
+          </Button>
+        )}
+
+        <UpgradeModal
+          open={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          reason="You used AI once — your workout was ready in seconds. Get that every single session."
+        />
 
         {/* Result */}
         {result && (

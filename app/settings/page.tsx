@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Lock, Download, Shield, LogOut, Info, ChevronRight } from "lucide-react"
+import { ArrowLeft, Lock, Download, Shield, LogOut, Info, ChevronRight, Sparkles, Crown } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { exportWorkoutData } from "@/lib/workout-storage"
@@ -14,6 +14,8 @@ import { exportGoalData } from "@/lib/goal-storage"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useEffect } from "react"
+import { useSubscription } from "@/hooks/use-subscription"
+import { UpgradeModal } from "@/components/upgrade-modal"
 
 function SettingsRow({
   icon: Icon,
@@ -69,16 +71,25 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default function SettingsPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { isPro, isTrialActive, daysLeft, plan, trialEndsAt } = useSubscription()
   const [isOAuthUser, setIsOAuthUser] = useState(false)
   const [pwOpen, setPwOpen] = useState(false)
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
   const [pwSaving, setPwSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [subDetails, setSubDetails] = useState<{ currentPeriodEnd?: string | null; status?: string } | null>(null)
 
   useEffect(() => {
     fetch("/api/user")
       .then((r) => (r.ok ? r.json() : null))
       .then((u) => { if (u) setIsOAuthUser(u.isOAuthUser ?? false) })
+      .catch(() => {})
+    // Fetch fresh subscription details
+    fetch("/api/subscription")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => { if (s) setSubDetails(s) })
       .catch(() => {})
   }, [])
 
@@ -102,6 +113,21 @@ export default function SettingsPage() {
       toast.error("Something went wrong")
     } finally {
       setPwSaving(false)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!confirm("Cancel your Pro subscription? You'll keep Pro access until the end of your billing period.")) return
+    setCancelling(true)
+    try {
+      const res = await fetch("/api/subscription", { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      toast.success("Subscription cancelled. You'll keep Pro access until your billing period ends.")
+      setSubDetails((prev) => prev ? { ...prev, status: "cancelled" } : prev)
+    } catch {
+      toast.error("Failed to cancel. Please try again or contact support.")
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -146,6 +172,69 @@ export default function SettingsPage() {
       </header>
 
       <main className="px-5 py-5 pb-8 space-y-4">
+
+        {/* Subscription */}
+        <SectionCard title="Subscription">
+          {isPro && !isTrialActive ? (
+            <>
+              <SettingsRow
+                icon={Crown}
+                label="FitTracker Pro"
+                sublabel={
+                  subDetails?.currentPeriodEnd
+                    ? `Renews ${new Date(subDetails.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                    : "Active"
+                }
+                iconColor="hsl(80 100% 50%)"
+                iconBg="hsl(80 100% 50% / 0.12)"
+                right={
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: "hsl(80 100% 50% / 0.12)", color: "hsl(80 100% 50%)" }}>
+                    Pro
+                  </span>
+                }
+              />
+              {subDetails?.status !== "cancelled" && (
+                <SettingsRow
+                  icon={LogOut}
+                  label={cancelling ? "Cancelling…" : "Cancel Subscription"}
+                  sublabel="Stops renewal, keeps access until period ends"
+                  onClick={handleCancelSubscription}
+                  iconColor="#ef4444"
+                  iconBg="rgba(239,68,68,0.12)"
+                />
+              )}
+              {subDetails?.status === "cancelled" && (
+                <div className="px-1 py-3 text-xs text-muted-foreground">
+                  Subscription cancelled — Pro access until billing period ends.
+                </div>
+              )}
+            </>
+          ) : isTrialActive ? (
+            <SettingsRow
+              icon={Sparkles}
+              label="Pro Trial Active"
+              sublabel={`${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining — upgrade to keep Pro`}
+              onClick={() => setShowUpgrade(true)}
+              iconColor="hsl(80 100% 50%)"
+              iconBg="hsl(80 100% 50% / 0.12)"
+              right={
+                <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: "hsl(80 100% 50% / 0.12)", color: "hsl(80 100% 50%)" }}>
+                  Upgrade
+                </span>
+              }
+            />
+          ) : (
+            <SettingsRow
+              icon={Sparkles}
+              label="Upgrade to Pro"
+              sublabel="AI insights, unlimited templates & more"
+              onClick={() => setShowUpgrade(true)}
+              iconColor="hsl(80 100% 50%)"
+              iconBg="hsl(80 100% 50% / 0.12)"
+            />
+          )}
+        </SectionCard>
+
         {/* Account */}
         <SectionCard title="Account">
           {!isOAuthUser && (
@@ -196,6 +285,8 @@ export default function SettingsPage() {
           />
         </SectionCard>
       </main>
+
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} reason="Train smarter, not just harder. Unlock AI insights, unlimited goals & templates, and advanced analytics." />
 
       {/* Change Password Dialog */}
       <Dialog open={pwOpen} onOpenChange={setPwOpen}>

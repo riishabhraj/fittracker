@@ -1,13 +1,15 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Plus, Trophy, Calendar, TrendingUp, Target, Flame, ArrowLeft } from "lucide-react"
+import { Plus, Trophy, Calendar, TrendingUp, Target, Flame, ArrowLeft, Trash2 } from "lucide-react"
 import { CreateGoalDialog } from "@/components/create-goal-dialog"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getWorkoutStats } from "@/lib/workout-storage"
-import { getGoals } from "@/lib/goal-storage"
+import { getGoals, deleteGoal } from "@/lib/goal-storage"
+import { toast } from "sonner"
 
 interface Goal {
   id: string
@@ -32,6 +34,7 @@ export default function GoalsPage() {
   const router = useRouter()
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const loadGoals = async () => {
     try {
@@ -91,6 +94,18 @@ export default function GoalsPage() {
 
   const activeGoals = goals.filter((g) => !g.completed)
   const completedGoals = goals.filter((g) => g.completed)
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+    try {
+      await deleteGoal(deleteId)
+      toast.success("Goal deleted")
+    } catch {
+      toast.error("Failed to delete goal")
+    } finally {
+      setDeleteId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,9 +188,17 @@ export default function GoalsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold" style={{ color: style.color }}>{Math.round(pct)}%</p>
-                      <p className="text-[11px] text-muted-foreground">{statusText}</p>
+                    <div className="flex items-start gap-3">
+                      <div className="text-right">
+                        <p className="text-xl font-bold" style={{ color: style.color }}>{Math.round(pct)}%</p>
+                        <p className="text-[11px] text-muted-foreground">{statusText}</p>
+                      </div>
+                      <button
+                        onClick={() => setDeleteId(goal.id)}
+                        className="mt-0.5 text-muted-foreground hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -227,7 +250,15 @@ export default function GoalsPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-2xl font-bold text-green-500">✓</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-bold text-green-500">✓</span>
+                    <button
+                      onClick={() => setDeleteId(goal.id)}
+                      className="text-muted-foreground hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -235,6 +266,39 @@ export default function GoalsPage() {
         )}
 
       </main>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null) }}>
+        <DialogContent className="sm:max-w-xs bg-card border-border p-0 overflow-hidden">
+          <div className="h-1 w-full" style={{ backgroundColor: "#ef4444" }} />
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(239,68,68,0.12)" }}>
+                <Trash2 className="h-5 w-5 text-red-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Delete goal?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">This can't be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="flex-1 h-10 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 h-10 rounded-xl text-sm font-semibold text-white transition-colors"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

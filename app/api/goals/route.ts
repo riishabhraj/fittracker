@@ -45,6 +45,18 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB()
+
+    // Free plan: max 3 goals
+    const plan = (session.user as any).plan ?? "free"
+    const trialEndsAt = (session.user as any).trialEndsAt ? new Date((session.user as any).trialEndsAt) : null
+    const isPro = plan === "pro" || (trialEndsAt !== null && trialEndsAt > new Date())
+    if (!isPro) {
+      const count = await Goal.countDocuments({ userId: session.user.id })
+      if (count >= 3) {
+        return NextResponse.json({ error: "GOAL_LIMIT" }, { status: 402 })
+      }
+    }
+
     const doc = await Goal.create({ ...body, userId: session.user.id })
     return NextResponse.json({ ...doc.toObject(), id: doc._id.toString() }, { status: 201 })
   } catch (err) {

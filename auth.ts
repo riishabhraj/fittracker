@@ -41,13 +41,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) token.id = user.id
+      // Fetch subscription on first login OR when client calls session.update()
+      if (user || trigger === "update") {
+        await connectDB()
+        const id = (token.id as string) ?? user?.id
+        const dbUser = await User.findById(id).select("subscription")
+        token.plan = dbUser?.subscription?.plan ?? "free"
+        token.trialEndsAt = dbUser?.subscription?.trialEndsAt ?? null
+      }
       return token
     },
     session({ session, token }) {
       session.user.id = token.id as string
+      session.user.plan = (token.plan as string) ?? "free"
+      session.user.trialEndsAt = token.trialEndsAt as Date | null
       return session
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      // Seed 7-day Pro trial for new OAuth users (credentials users are handled in /api/auth/register)
+      await connectDB()
+      await User.findByIdAndUpdate(user.id, {
+        "subscription.plan": "free",
+        "subscription.status": "trialing",
+        "subscription.trialEndsAt": new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      })
     },
   },
 })

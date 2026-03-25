@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Lock, Sparkles } from "lucide-react"
 import { getWorkouts, getWorkoutStats, computePersonalRecords } from "@/lib/workout-storage"
 import { computeAchievements, formatProgress, type AchievementResult } from "@/lib/achievements"
+import { useSubscription } from "@/hooks/use-subscription"
+import { UpgradeModal } from "@/components/upgrade-modal"
 
 function formatRelativeDate(iso?: string): string {
   if (!iso) return ""
@@ -143,10 +145,50 @@ function LoadingSkeleton() {
 
 // Page
 
+const PRO_EXCLUSIVE_BADGES = [
+  { emoji: "🧠", name: "Mind-Muscle Master" },
+  { emoji: "📈", name: "Streak Legend" },
+  { emoji: "🏆", name: "Elite Athlete" },
+]
+
+function ProBadgesNudge({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <div
+      className="rounded-2xl border p-4 flex items-center gap-4 cursor-pointer active:scale-[0.98] transition-transform"
+      style={{ backgroundColor: "hsl(80 100% 50% / 0.06)", borderColor: "hsl(80 100% 50% / 0.25)" }}
+      onClick={onUpgrade}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+        style={{ backgroundColor: "hsl(80 100% 50% / 0.15)" }}
+      >
+        <Sparkles className="h-5 w-5" style={{ color: "hsl(80 100% 50%)" }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground">
+          {PRO_EXCLUSIVE_BADGES.length} Pro-exclusive badges locked
+        </p>
+        <div className="flex items-center gap-1.5 mt-1">
+          {PRO_EXCLUSIVE_BADGES.map((b) => (
+            <span key={b.name} className="text-base grayscale opacity-50">{b.emoji}</span>
+          ))}
+          <span className="text-xs text-muted-foreground ml-0.5">+ more</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-semibold" style={{ color: "hsl(80 100% 50%)" }}>Unlock</span>
+      </div>
+    </div>
+  )
+}
+
 export default function AchievementsPage() {
   const router = useRouter()
   const [achievements, setAchievements] = useState<AchievementResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const { isPro } = useSubscription()
 
   useEffect(() => {
     const load = async () => {
@@ -184,7 +226,11 @@ export default function AchievementsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        reason="You're building serious consistency 🔥 Unlock advanced progress tracking and take it further."
+      />
       <header
         className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
@@ -223,6 +269,9 @@ export default function AchievementsPage() {
                 {unlockedCount} of {total} badges earned
               </p>
             </div>
+
+            {/* Pro badges nudge */}
+            {!isPro && <ProBadgesNudge onUpgrade={() => setUpgradeOpen(true)} />}
 
             {/* Empty state */}
             {unlockedCount === 0 && (

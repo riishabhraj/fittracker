@@ -1,25 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import Anthropic from "@anthropic-ai/sdk"
-
-// In-memory rate limiter: 10 generations per user per 24 hours
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-const DAILY_LIMIT = 10
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(userId)
-
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + 24 * 60 * 60 * 1000 })
-    return true
-  }
-
-  if (entry.count >= DAILY_LIMIT) return false
-  entry.count++
-  return true
-}
+import connectDB from "@/lib/mongoose"
+import { User } from "@/lib/models/user"
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -27,11 +10,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (!checkRateLimit(session.user.id)) {
-    return NextResponse.json(
-      { error: "Daily limit reached (10 AI workouts/day). Try again tomorrow." },
-      { status: 429 }
-    )
+  const isPro =
+    session.user.plan === "pro" ||
+    (session.user.plan === "free" &&
+      session.user.trialEndsAt != null &&
+      new Date(session.user.trialEndsAt) > new Date())
+
+  if (!isPro) {
+    await connectDB()
+    const dbUser = await User.findById(session.user.id).select("aiGeneratorUsed")
+    if (dbUser?.aiGeneratorUsed) {
+      return NextResponse.json(
+        { error: "You've used your free AI generation. Upgrade to Pro for unlimited workouts.", code: "AI_LIMIT" },
+        { status: 402 }
+      )
+    }
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -104,6 +97,13 @@ Rules:
 
   try {
     const workout = JSON.parse(match[0])
+
+    // Mark first-time use for free users
+    if (!isPro) {
+      await connectDB()
+      await User.findByIdAndUpdate(session.user.id, { aiGeneratorUsed: true })
+    }
+
     return NextResponse.json(workout)
   } catch {
     return NextResponse.json({ error: "AI returned invalid JSON. Please try again." }, { status: 500 })

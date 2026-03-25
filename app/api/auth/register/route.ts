@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password: hashed,
+      subscription: {
+        plan: "free",
+        status: "trialing",
+        trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
     })
 
     return NextResponse.json({ success: true }, { status: 201 })
