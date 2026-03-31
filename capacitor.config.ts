@@ -1,9 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.fittracker.workoutlogger',
+  appId: 'com.rishabhraj.fittracker',
   appName: 'FitTracker',
   webDir: 'out',
+  server: {
+    url: 'https://workout-logger-swart.vercel.app',
+    cleartext: false,
+  },
   plugins: {
     GoogleAuth: {
       scopes: ["profile", "email"],
