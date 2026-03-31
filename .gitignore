@@ -26,3 +26,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+screenshots/
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# IDE
+.idea/
+
+# lock files (using npm now)
+pnpm-lock.yaml
+
+# misc
+package-lock.json
+*.txt
