@@ -11,6 +11,12 @@ class OAuthAccountError extends CredentialsSignin {
   code = "OAuthAccount"
 }
 
+class EmailNotVerifiedError extends CredentialsSignin {
+  code = "EmailNotVerified"
+}
+
+const FEATURE_LAUNCH_DATE = new Date("2026-04-01T00:00:00.000Z")
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: MongoDBAdapter(clientPromise),
@@ -34,6 +40,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await bcrypt.compare(password, user.password)
         if (!valid) return null
+
+        // Block unverified users — only applies to accounts created after feature launch
+        if (!user.emailVerified && user.createdAt > FEATURE_LAUNCH_DATE) {
+          throw new EmailNotVerifiedError()
+        }
 
         return { id: user._id.toString(), email: user.email, name: user.name ?? null }
       },

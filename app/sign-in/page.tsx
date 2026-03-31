@@ -126,14 +126,17 @@ function InputField({
 }
 
 function SignInForm({ oauthError }: { oauthError: string | null }) {
-  const [email, setEmail]       = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError]       = useState<string | null>(null)
-  const [loading, setLoading]   = useState(false)
+  const [email, setEmail]               = useState("")
+  const [password, setPassword]         = useState("")
+  const [error, setError]               = useState<string | null>(null)
+  const [loading, setLoading]           = useState(false)
+  const [unverifiedEmail, setUnverifiedEmail] = useState("")
+  const [resendLoading, setResendLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setUnverifiedEmail("")
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Enter a valid email address."); return
@@ -146,21 +149,49 @@ function SignInForm({ oauthError }: { oauthError: string | null }) {
     const result = await signIn("credentials", { email, password, callbackUrl: "/", redirect: false })
     setLoading(false)
 
-    if (result?.error) {
-      const code = result.error
-      setError(OAUTH_ERRORS[code] ?? "Invalid email or password.")
+    if (result?.error === "EmailNotVerified") {
+      setUnverifiedEmail(email)
+      setError("EmailNotVerified")
+    } else if (result?.error) {
+      setError(OAUTH_ERRORS[result.error] ?? "Invalid email or password.")
     } else if (result?.url) {
       window.location.href = result.url
     }
   }
 
+  const handleResendFromSignIn = async () => {
+    setResendLoading(true)
+    try {
+      await fetch("/api/auth/resend-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: unverifiedEmail }),
+      })
+    } catch {}
+    window.location.href = `/verify-email?email=${encodeURIComponent(unverifiedEmail)}`
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {(error || oauthError) && (
+      {error === "EmailNotVerified" ? (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5 space-y-2">
+          <p className="text-xs text-amber-400 text-center">
+            Please verify your email. Check your inbox for a 6-digit code.
+          </p>
+          <button
+            type="button"
+            onClick={handleResendFromSignIn}
+            disabled={resendLoading}
+            className="w-full text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors disabled:opacity-60"
+          >
+            {resendLoading ? "Sending…" : "Resend verification code →"}
+          </button>
+        </div>
+      ) : (error || oauthError) ? (
         <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
           {error ?? oauthError}
         </p>
-      )}
+      ) : null}
       <InputField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoComplete="email" />
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
@@ -217,9 +248,25 @@ function RegisterForm() {
         body: JSON.stringify({ name: name.trim(), email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? "Registration failed."); setLoading(false); return }
 
-      // Auto sign-in after successful registration
+      if (!res.ok) {
+        // Unverified existing account — redirect to verify
+        if (data.requiresVerification) {
+          window.location.href = `/verify-email?email=${encodeURIComponent(data.email ?? email)}`
+          return
+        }
+        setError(data.error ?? "Registration failed.")
+        setLoading(false)
+        return
+      }
+
+      // New account — redirect to verify email
+      if (data.requiresVerification) {
+        window.location.href = `/verify-email?email=${encodeURIComponent(data.email ?? email)}`
+        return
+      }
+
+      // Fallback: auto sign-in (should not be reached)
       const result = await signIn("credentials", { email, password, callbackUrl: "/", redirect: false })
       if (result?.url) window.location.href = result.url
       else setError("Account created but sign-in failed. Please sign in manually.")

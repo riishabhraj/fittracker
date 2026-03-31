@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
+import { Resend } from "resend"
 import connectDB from "@/lib/mongoose"
 import { User } from "@/lib/models/user"
+import { OtpToken } from "@/lib/models/otp-token"
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,22 +29,33 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
+    const normalizedEmail = email.toLowerCase().trim()
+
     // Check if email already taken
-    const existing = await User.findOne({ email: email.toLowerCase().trim() }).select("+password")
+    const existing = await User.findOne({ email: normalizedEmail }).select("+password")
     if (existing) {
       const isOAuth = !existing.password
-      return NextResponse.json({
-        error: isOAuth
-          ? "This email is linked to a Google account. Please sign in with Google instead."
-          : "An account with this email already exists.",
-      }, { status: 409 })
+      if (isOAuth) {
+        return NextResponse.json({
+          error: "This email is linked to a Google account. Please sign in with Google instead.",
+        }, { status: 409 })
+      }
+      // Existing unverified account — let them re-verify
+      if (!existing.emailVerified) {
+        return NextResponse.json({
+          error: "An account with this email exists but hasn't been verified.",
+          requiresVerification: true,
+          email: normalizedEmail,
+        }, { status: 409 })
+      }
+      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 })
     }
 
     const hashed = await bcrypt.hash(password, 10)
 
-    await User.create({
+    const user = await User.create({
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       password: hashed,
       subscription: {
         plan: "free",
@@ -51,7 +64,50 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ success: true }, { status: 201 })
+    // Generate and send OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const hashedOtp = await bcrypt.hash(otp, 10)
+
+    await OtpToken.deleteMany({ email: normalizedEmail })
+    await OtpToken.create({
+      userId: user._id.toString(),
+      email: normalizedEmail,
+      hashedOtp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    })
+
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_DOMAIN === "resend.dev"
+          ? "FitTracker <onboarding@resend.dev>"
+          : `FitTracker <noreply@${process.env.RESEND_FROM_DOMAIN ?? "fittracker.app"}>`,
+        to: normalizedEmail,
+        subject: "Verify your FitTracker email",
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0f0f0f; color: #f5f5f5; border-radius: 16px;">
+            <img src="${process.env.NEXTAUTH_URL}/fittracker-app-icon.png" alt="FitTracker" width="56" height="56" style="border-radius: 14px; margin-bottom: 24px; display: block;" />
+            <h1 style="font-size: 22px; font-weight: 700; margin: 0 0 8px;">Verify your email</h1>
+            <p style="color: #888; font-size: 14px; margin: 0 0 32px;">
+              Enter this 6-digit code in FitTracker to confirm your email address.
+              It expires in <strong style="color: #f5f5f5;">10 minutes</strong>.
+            </p>
+            <div style="background: #1c1c1c; border: 1px solid #2e2e2e; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 32px;">
+              <p style="color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 12px;">Your verification code</p>
+              <p style="font-size: 40px; font-weight: 700; letter-spacing: 0.25em; color: #aaff00; margin: 0; font-family: monospace;">${otp}</p>
+            </div>
+            <p style="color: #555; font-size: 12px; margin: 0;">
+              If you didn't create a FitTracker account, you can safely ignore this email.
+            </p>
+          </div>
+        `,
+      })
+    } catch (emailErr) {
+      console.error("[register] email send failed:", emailErr)
+      // Don't fail the request — user can resend
+    }
+
+    return NextResponse.json({ requiresVerification: true, email: normalizedEmail }, { status: 201 })
   } catch (err) {
     console.error("POST /api/auth/register error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
