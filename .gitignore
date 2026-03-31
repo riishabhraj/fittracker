@@ -39,5 +39,4 @@ screenshots/
 pnpm-lock.yaml
 
 # misc
-package-lock.json
 *.txt
