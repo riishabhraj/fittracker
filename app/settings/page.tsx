@@ -280,7 +280,10 @@ export default function SettingsPage() {
             icon={LogOut}
             label="Sign Out"
             sublabel={session?.user?.email ?? undefined}
-            onClick={() => signOut({ callbackUrl: "/sign-in" })}
+            onClick={async () => {
+              await signOut({ redirect: false })
+              window.location.replace("/sign-in")
+            }}
             destructive
           />
         </SectionCard>

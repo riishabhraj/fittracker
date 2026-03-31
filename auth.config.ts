@@ -7,6 +7,10 @@ export default {
   providers: [Google({ allowDangerousEmailAccountLinking: true })],
   pages: { signIn: "/sign-in" },
   cookies: {
+    sessionToken: {
+      name: "authjs.session-token",
+      options: { httpOnly: true, sameSite: "none", path: "/", secure: true },
+    },
     state: {
       name: "authjs.state",
       options: { httpOnly: true, sameSite: "none", path: "/", secure: true },

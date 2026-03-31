@@ -141,7 +141,10 @@ export function AccountSettingsCard({ isOAuthUser }: AccountSettingsCardProps) {
           <SettingsRow
             icon={LogOut}
             label="Sign Out"
-            onClick={() => signOut({ callbackUrl: "/sign-in" })}
+            onClick={async () => {
+              await signOut({ redirect: false })
+              window.location.replace("/sign-in")
+            }}
             destructive
           />
         </div>
