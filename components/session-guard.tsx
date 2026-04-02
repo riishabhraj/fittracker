@@ -4,6 +4,14 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
+const PUBLIC_PATHS = [
+  "/sign-in",
+  "/reset-password",
+  "/verify-email",
+  "/privacy-policy",
+  "/onboarding",
+]
+
 /**
  * Silently watches the session. If it expires or is missing, redirects to /sign-in.
  * Mount once in the root layout (inside SessionProvider).
@@ -14,7 +22,8 @@ export function SessionGuard() {
 
   useEffect(() => {
     const path = window.location.pathname
-    if (status === "unauthenticated" && !path.startsWith("/sign-in") && !path.startsWith("/onboarding")) {
+    const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p))
+    if (status === "unauthenticated" && !isPublic) {
       router.replace("/sign-in")
     }
   }, [status, router])

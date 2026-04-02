@@ -3,6 +3,9 @@ import { encode } from "next-auth/jwt"
 import connectDB from "@/lib/mongoose"
 import { User } from "@/lib/models/user"
 
+// Must match auth.config.ts exactly — single source of truth for cookie name
+const COOKIE_NAME = "authjs.session-token"
+
 export async function POST(req: NextRequest) {
   try {
     const { idToken } = await req.json()
@@ -30,33 +33,46 @@ export async function POST(req: NextRequest) {
     // Find or create user
     await connectDB()
     let user = await User.findOne({ email })
-    if (!user) user = await User.create({ email, name, emailVerified: new Date() })
-
-    // Auth.js v5 uses __Secure- prefix on HTTPS (Vercel production)
-    const useSecure  = process.env.NODE_ENV === "production"
-    const cookieName = useSecure ? "__Secure-authjs.session-token" : "authjs.session-token"
+    if (!user) {
+      user = await User.create({
+        email,
+        name,
+        emailVerified: new Date(),
+        subscription: {
+          plan: "free",
+          status: "trialing",
+          trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      })
+    }
 
     // Encode a JWT identical to what Auth.js would create
+    // Salt MUST match the cookie name used in auth.config.ts
     const sessionToken = await encode({
       token: {
         sub:   user._id.toString(),
-        id:    user._id.toString(), // our custom jwt callback field
+        id:    user._id.toString(),
         email: user.email,
         name:  user.name ?? null,
+        plan:  user.subscription?.plan ?? "free",
+        trialEndsAt: user.subscription?.trialEndsAt ?? null,
       },
       secret:  process.env.AUTH_SECRET!,
-      salt:    cookieName,          // Auth.js derives the key from the cookie name
-      maxAge:  30 * 24 * 60 * 60,  // 30 days
+      salt:    COOKIE_NAME,
+      maxAge:  30 * 24 * 60 * 60,
     })
 
     const response = NextResponse.json({ ok: true })
-    response.cookies.set(cookieName, sessionToken, {
+
+    // Cookie settings MUST match auth.config.ts: sameSite: "none", secure: true
+    response.cookies.set(COOKIE_NAME, sessionToken, {
       httpOnly: true,
-      secure:   useSecure,
-      sameSite: "lax",
+      secure:   true,
+      sameSite: "none",
       path:     "/",
       maxAge:   30 * 24 * 60 * 60,
     })
+
     return response
   } catch (err) {
     console.error("[google-native] auth error:", err)

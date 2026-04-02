@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LogOut, Lock, Download, Shield, ChevronRight } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { robustSignOut } from "@/lib/auth-utils"
 import { toast } from "sonner"
 import { exportWorkoutData } from "@/lib/workout-storage"
 import { exportGoalData } from "@/lib/goal-storage"
@@ -141,10 +141,7 @@ export function AccountSettingsCard({ isOAuthUser }: AccountSettingsCardProps) {
           <SettingsRow
             icon={LogOut}
             label="Sign Out"
-            onClick={async () => {
-              await signOut({ redirect: false })
-              window.location.replace("/sign-in")
-            }}
+            onClick={robustSignOut}
             destructive
           />
         </div>

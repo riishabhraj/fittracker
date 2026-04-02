@@ -44,6 +44,8 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
         })
         const data = await res.json()
         if (data.ok) {
+          // Small delay to let the browser persist the session cookie
+          await new Promise((r) => setTimeout(r, 300))
           window.location.href = "/"
         } else {
           setError(data.error ?? "Google sign-in failed. Please try again.")
