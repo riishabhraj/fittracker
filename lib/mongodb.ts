@@ -11,31 +11,27 @@ function createClientPromise(): Promise<MongoClient> {
 
   const client = new MongoClient(uri, {
     maxPoolSize: 10,
-    minPoolSize: 2,
-    serverSelectionTimeoutMS: 5000,
-    connectTimeoutMS: 10000,
+    // minPoolSize intentionally omitted — serverless functions must not maintain
+    // background connections; they connect on demand and let the pool idle.
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    socketTimeoutMS: 30000,
   })
 
   return client.connect().catch((err) => {
     // Clear cached promise on failure so next call retries
-    if (process.env.NODE_ENV === "development") {
-      global._mongoClientPromise = undefined
-    }
+    global._mongoClientPromise = undefined
     throw err
   })
 }
 
-// Reuse connection across hot reloads in development; fresh per deployment in production
-let clientPromise: Promise<MongoClient>
-
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    global._mongoClientPromise = createClientPromise()
-  }
-  clientPromise = global._mongoClientPromise
-} else {
-  // In production, reuse at module level (one module per instance)
-  clientPromise = createClientPromise()
+// Cache the client promise in global so it is reused across:
+//  - hot reloads in development
+//  - warm serverless invocations in production (same function instance)
+if (!global._mongoClientPromise) {
+  global._mongoClientPromise = createClientPromise()
 }
+
+const clientPromise: Promise<MongoClient> = global._mongoClientPromise
 
 export default clientPromise
