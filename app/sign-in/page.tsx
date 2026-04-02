@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { Capacitor } from "@capacitor/core"
 
 const OAUTH_ERRORS: Record<string, string> = {
@@ -18,6 +18,25 @@ const OAUTH_ERRORS: Record<string, string> = {
 function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  // Pre-initialize the Capacitor Google Auth plugin as soon as the component
+  // mounts so the first button click goes straight to signIn() without an
+  // initialization round-trip (which could briefly show/dismiss the account
+  // picker and require a second tap).
+  const googleAuthRef = useRef<{ signIn: () => Promise<{ authentication: { idToken: string } }> } | null>(null)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    import("@codetrix-studio/capacitor-google-auth").then(({ GoogleAuth }) => {
+      GoogleAuth.initialize({
+        clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
+        scopes: ["profile", "email"],
+        grantOfflineAccess: true,
+      }).then(() => {
+        googleAuthRef.current = GoogleAuth
+      }).catch(() => {
+        // initialization failure is non-fatal; handleClick will retry
+      })
+    })
+  }, [])
 
   const handleClick = async () => {
     if (loading) return
@@ -28,12 +47,16 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
       if (Capacitor.isNativePlatform()) {
         // Native path: use Capacitor plugin to avoid WebView OAuth block
         const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth")
-        await GoogleAuth.initialize({
-          clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
-          scopes: ["profile", "email"],
-          grantOfflineAccess: true,
-        })
-        const googleUser = await GoogleAuth.signIn()
+        // Use the pre-initialized instance if available; otherwise initialize now
+        if (!googleAuthRef.current) {
+          await GoogleAuth.initialize({
+            clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
+            scopes: ["profile", "email"],
+            grantOfflineAccess: true,
+          })
+          googleAuthRef.current = GoogleAuth
+        }
+        const googleUser = await googleAuthRef.current.signIn()
         const idToken = googleUser.authentication.idToken
 
         // POST to our custom route — bypasses Auth.js signin routing entirely
@@ -55,7 +78,12 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
         // Web path: use next-auth/react signIn which POSTs with CSRF token.
         // Direct GET to /api/auth/signin/google throws UnknownAction when
         // custom pages.signIn is configured in Auth.js v5.
-        signIn("google", { callbackUrl: "/" })
+        // Await so we can reset loading if it fails without redirecting.
+        try {
+          await signIn("google", { callbackUrl: "/" })
+        } catch {
+          setLoading(false)
+        }
       }
     } catch (err: unknown) {
       // User cancelled or plugin error — don't show error for cancellation
