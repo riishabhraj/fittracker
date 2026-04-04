@@ -47,8 +47,8 @@ export function computeMuscleVolumes(
     for (const exercise of workout.exercises) {
       const muscles = CATEGORY_TO_MUSCLES[exercise.category] ?? []
       const vol = exercise.sets
-        .filter((s) => s.completed && s.weight > 0 && s.reps > 0)
-        .reduce((sum, s) => sum + s.weight * s.reps, 0)
+        .filter((s) => s.completed && s.reps > 0)
+        .reduce((sum, s) => sum + (s.weight > 0 ? s.weight * s.reps : s.reps), 0)
 
       if (vol === 0) continue
       for (const m of muscles) {
@@ -71,8 +71,8 @@ export function computeSingleWorkoutVolumes(
   for (const exercise of workout.exercises) {
     const muscles = CATEGORY_TO_MUSCLES[exercise.category] ?? []
     const vol = exercise.sets
-      .filter((s) => s.completed && s.weight > 0 && s.reps > 0)
-      .reduce((sum, s) => sum + s.weight * s.reps, 0)
+      .filter((s) => s.completed && s.reps > 0)
+      .reduce((sum, s) => sum + (s.weight > 0 ? s.weight * s.reps : s.reps), 0)
 
     if (vol === 0) continue
     for (const m of muscles) {
