@@ -9,7 +9,7 @@ import { Plus, Play, Pause, Check, Activity } from "lucide-react"
 import Image from "next/image"
 import { WorkoutTimer } from "@/components/workout-timer"
 import { ExerciseLogger } from "@/components/exercise-logger"
-import { ExerciseSelector, EXERCISE_TYPE_MAP, type ExerciseType } from "@/components/exercise-selector"
+import { ExerciseSelector, EXERCISE_TYPE_MAP, type ExerciseType, type EquipmentType } from "@/components/exercise-selector"
 import { SupersetBracket } from "@/components/superset-bracket"
 import { BackButton } from "@/components/back-button"
 import { templates } from "@/components/workout-templates"
@@ -48,6 +48,7 @@ interface Exercise {
   sets: ExerciseSet[]
   supersetGroup?: string
   exerciseType?: ExerciseType
+  equipment?: EquipmentType
   usedTemplate?: boolean
   usedAIGenerate?: boolean
 }
@@ -366,12 +367,13 @@ function LogWorkoutContent() {
   }, [isWorkoutActive, workoutStartTime])
 
   // ── Exercise actions ─────────────────────────────────────────────────────────
-  const addExercise = (exercise: { name: string; category: string; exerciseType: ExerciseType }) => {
+  const addExercise = (exercise: { name: string; category: string; exerciseType: ExerciseType; equipment?: EquipmentType }) => {
     const newExercise: Exercise = {
       id: Date.now().toString(),
       name: exercise.name,
       category: exercise.category,
       exerciseType: exercise.exerciseType,
+      equipment: exercise.equipment,
       sets: [{ reps: 0, weight: 0, completed: false }],
     }
     setExercises((prev) => {

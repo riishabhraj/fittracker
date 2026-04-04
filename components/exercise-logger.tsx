@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { RPEPicker } from "@/components/rpe-picker"
 import { calculateEpley1RM } from "@/lib/one-rm"
 import type { SuggestedSet } from "@/lib/progressive-overload"
-import type { ExerciseType } from "@/components/exercise-selector"
+import type { ExerciseType, EquipmentType } from "@/components/exercise-selector"
 import { toast } from "sonner"
 
 interface Set {
@@ -28,6 +28,7 @@ interface Exercise {
   sets: Set[]
   supersetGroup?: string
   exerciseType?: ExerciseType
+  equipment?: EquipmentType
   barbell?: boolean
 }
 
@@ -79,6 +80,12 @@ export function ExerciseLogger({
 
   const [barbell, setBarbell] = useState(exercise.barbell ?? false)
   const BAR_WEIGHT = 20 // standard Olympic bar in kg
+
+  // Only barbell and dumbbell exercises get the per-side toggle
+  const showWeightToggle =
+    exercise.equipment === "barbell" || exercise.equipment === "dumbbell"
+  const toggleLabel     = exercise.equipment === "dumbbell" ? "DB"       : "BB"
+  const toggleLabelFull = exercise.equipment === "dumbbell" ? "DUMBBELL" : "BARBELL"
 
   const toggleBarbell = () => {
     const next = !barbell
@@ -158,10 +165,13 @@ export function ExerciseLogger({
   const completeSet = (setIndex: number) => {
     const set = exercise.sets[setIndex]
 
-    // Convert per-side weight to total for barbell exercises
-    const effectiveWeight = barbell && set.weight > 0
-      ? set.weight * 2 + BAR_WEIGHT
-      : set.weight
+    // Convert per-side weight to total for barbell/dumbbell exercises
+    const effectiveWeight =
+      barbell && set.weight > 0
+        ? exercise.equipment === "dumbbell"
+          ? set.weight * 2               // dumbbell: per-side × 2, no bar
+          : set.weight * 2 + BAR_WEIGHT  // barbell: per-side × 2 + 20 kg bar
+        : set.weight
 
     const orm =
       effectiveWeight > 0 && set.reps > 0
@@ -260,7 +270,7 @@ export function ExerciseLogger({
               {isOptionalWeight && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">BW+</span>
               )}
-              {showWeightColumn && !isOptionalWeight && (
+              {showWeightToggle && !isOptionalWeight && (
                 <button
                   onClick={toggleBarbell}
                   className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
@@ -269,7 +279,7 @@ export function ExerciseLogger({
                       : "bg-muted/20 text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {barbell ? "BARBELL" : "BB"}
+                  {barbell ? toggleLabelFull : toggleLabel}
                 </button>
               )}
               {prLabel && (
@@ -419,7 +429,9 @@ export function ExerciseLogger({
                   />
                   {barbell && set.weight > 0 && !set.completed && (
                     <div className="text-[9px] text-orange-400 text-center mt-0.5">
-                      = {set.weight * 2 + BAR_WEIGHT} kg
+                      = {exercise.equipment === "dumbbell"
+                          ? set.weight * 2
+                          : set.weight * 2 + BAR_WEIGHT} kg
                     </div>
                   )}
                 </div>
