@@ -1,13 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Plus, Trophy, Calendar, TrendingUp, Target, Flame, ArrowLeft, Trash2 } from "lucide-react"
+import { Plus, Trophy, TrendingUp, Target, Flame, ArrowLeft, Trash2 } from "lucide-react"
 import { CreateGoalDialog } from "@/components/create-goal-dialog"
 import { WorkoutSessionNotification } from "@/components/workout-session-notification"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getWorkoutStats } from "@/lib/workout-storage"
 import { getGoals, deleteGoal } from "@/lib/goal-storage"
 import { toast } from "sonner"
 
@@ -38,43 +37,8 @@ export default function GoalsPage() {
 
   const loadGoals = async () => {
     try {
-    const savedGoals = await getGoals()
-    const stats = await getWorkoutStats()
-
-    if (savedGoals.length === 0) {
-      setGoals([
-        {
-          id: "weekly-workouts",
-          title: "Workout 4x per week",
-          type: "habit",
-          target: 4,
-          current: stats.weeklyWorkouts,
-          unit: "workouts",
-          icon: Target,
-          completed: stats.weeklyWorkouts >= 4,
-        },
-        {
-          id: "consistency-streak",
-          title: "30-day streak",
-          type: "consistency",
-          target: 30,
-          current: stats.currentStreak,
-          unit: "days",
-          icon: Calendar,
-          completed: stats.currentStreak >= 30,
-        },
-      ])
-    } else {
-      setGoals(
-        savedGoals.map((goal) => {
-          if (goal.id === "weekly-workouts")
-            return { ...goal, current: stats.weeklyWorkouts, completed: stats.weeklyWorkouts >= 4 }
-          if (goal.id === "consistency-streak")
-            return { ...goal, current: stats.currentStreak, completed: stats.currentStreak >= 30 }
-          return goal
-        })
-      )
-    }
+      const savedGoals = await getGoals()
+      setGoals(savedGoals)
     } catch (err) {
       console.error("Failed to load goals:", err)
     } finally {
