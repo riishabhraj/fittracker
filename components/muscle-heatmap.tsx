@@ -15,7 +15,7 @@ const TIME_OPTIONS = [
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export function MuscleHeatmap({ gender = "male" }: { gender?: string }) {
-  const [selectedDays, setSelectedDays] = useState(7)
+  const [selectedDays, setSelectedDays] = useState(30)
   const [volumes, setVolumes] = useState<Volumes>({})
   const [loading, setLoading] = useState(true)
 

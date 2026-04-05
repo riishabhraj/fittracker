@@ -152,7 +152,7 @@ const templates: WorkoutTemplate[] = [
       { name: "Close-Grip Bench Press", category: "Arms", sets: 3, reps: "8-10" },
       { name: "Overhead Tricep Extension", category: "Arms", sets: 3, reps: "10-12" },
       { name: "Front Raises", category: "Shoulders", sets: 3, reps: "10-12" },
-      { name: "Diamond Push-ups", category: "Arms", sets: 3, reps: "8-12" }
+      { name: "Diamond Push-ups", category: "Chest", sets: 3, reps: "8-12" }
     ]
   },
   {
