@@ -48,18 +48,15 @@ export function Deco({ children }: { children: React.ReactNode }) {
 // ─── FRONT body ──────────────────────────────────────────────────────────────
 
 export function FrontBody({ v, showIdle }: { v: Volumes; showIdle?: boolean }) {
-  const clipArms = !v.quads && !v.calves
   return (
     <svg viewBox="993 308 168 370" style={{ height: "100%", width: "auto" }} fill="none" xmlns="http://www.w3.org/2000/svg">
-      {clipArms && (
-        <defs>
-          <clipPath id="clip-arms-front">
-            <rect x="993" y="308" width="168" height="184" />
-            <rect x="993" y="492" width="35" height="186" />
-            <rect x="1128" y="492" width="33" height="186" />
-          </clipPath>
-        </defs>
-      )}
+      <defs>
+        <clipPath id="clip-arms-front">
+          <rect x="993" y="308" width="168" height="184" />
+          <rect x="993" y="492" width="35" height="186" />
+          <rect x="1128" y="492" width="33" height="186" />
+        </clipPath>
+      </defs>
 
       {/* ── Decorative: hands / fingers ── */}
       <Deco>
@@ -94,7 +91,7 @@ export function FrontBody({ v, showIdle }: { v: Volumes; showIdle?: boolean }) {
       </Z>
 
       {/* ── Arms group (clipped to avoid bleed into idle leg zone) ── */}
-      <g clipPath={clipArms ? "url(#clip-arms-front)" : undefined}>
+      <g clipPath="url(#clip-arms-front)">
 
       {/* ── Biceps ── */}
       <Z v={v} showIdle={showIdle} m="biceps">
@@ -198,18 +195,15 @@ export function FrontBody({ v, showIdle }: { v: Volumes; showIdle?: boolean }) {
 // ─── BACK body ───────────────────────────────────────────────────────────────
 
 export function BackBody({ v, showIdle }: { v: Volumes; showIdle?: boolean }) {
-  const clipArms = !v.glutes && !v.hamstrings && !v.calves
   return (
     <svg viewBox="430 520 165 370" style={{ height: "100%", width: "auto" }} fill="none" xmlns="http://www.w3.org/2000/svg">
-      {clipArms && (
-        <defs>
-          <clipPath id="clip-arms-back">
-            <rect x="430" y="520" width="165" height="140" />
-            <rect x="430" y="660" width="30" height="230" />
-            <rect x="563" y="660" width="32" height="230" />
-          </clipPath>
-        </defs>
-      )}
+      <defs>
+        <clipPath id="clip-arms-back">
+          <rect x="430" y="520" width="165" height="140" />
+          <rect x="430" y="660" width="30" height="230" />
+          <rect x="563" y="660" width="32" height="230" />
+        </clipPath>
+      </defs>
 
       {/* ── Decorative: neck / shoulder connectors ── */}
       <Deco>
@@ -240,7 +234,7 @@ export function BackBody({ v, showIdle }: { v: Volumes; showIdle?: boolean }) {
       </Z>
 
       {/* ── Arms group (clipped to avoid bleed into idle leg zone) ── */}
-      <g clipPath={clipArms ? "url(#clip-arms-back)" : undefined}>
+      <g clipPath="url(#clip-arms-back)">
 
       {/* ── Triceps ── */}
       <Z v={v} showIdle={showIdle} m="triceps">
