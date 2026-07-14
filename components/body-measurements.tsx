@@ -39,6 +39,7 @@ export function BodyMeasurements() {
     weight: "",
     bodyFat: "",
     date: new Date().toISOString().split("T")[0],
+    time: new Date().toTimeString().slice(0, 5),
   })
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export function BodyMeasurements() {
   }, [])
 
   const toChartPoint = (e: WeightEntry): ChartPoint => ({
-    month: new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    month: new Date(e.date).toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
     date: e.date,
     weight: e.weight,
     bodyFat: e.bodyFat,
@@ -75,7 +76,7 @@ export function BodyMeasurements() {
       const res = await fetch("/api/profile/weight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: form.date, weight, bodyFat }),
+        body: JSON.stringify({ date: `${form.date}T${form.time}:00`, weight, bodyFat }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -89,7 +90,7 @@ export function BodyMeasurements() {
         )
         setEntries(sorted)
       }
-      setForm({ weight: "", bodyFat: "", date: new Date().toISOString().split("T")[0] })
+      setForm({ weight: "", bodyFat: "", date: new Date().toISOString().split("T")[0], time: new Date().toTimeString().slice(0, 5) })
       setIsDialogOpen(false)
       toast.success("Measurement saved!")
     } catch {
@@ -112,24 +113,40 @@ export function BodyMeasurements() {
           <DialogTitle>Add Body Measurement</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-1">
-          <div className="space-y-1.5">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="bg-background"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="time">Time</Label>
+              <Input
+                id="time"
+                type="time"
+                value={form.time}
+                onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
+                className="bg-background"
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="weight">Weight (kg)</Label>
             <Input
               id="weight"
-              type="number"
-              placeholder="e.g. 75"
+              type="text"
+              inputMode="decimal"
+              placeholder="e.g. 75.5"
               value={form.weight}
-              onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === "" || /^\d*\.?\d*$/.test(val)) setForm((f) => ({ ...f, weight: val }))
+              }}
               className="bg-background"
             />
           </div>
@@ -137,10 +154,14 @@ export function BodyMeasurements() {
             <Label htmlFor="bodyFat">Body Fat % (optional)</Label>
             <Input
               id="bodyFat"
-              type="number"
-              placeholder="e.g. 15"
+              type="text"
+              inputMode="decimal"
+              placeholder="e.g. 15.5"
               value={form.bodyFat}
-              onChange={(e) => setForm((f) => ({ ...f, bodyFat: e.target.value }))}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === "" || /^\d*\.?\d*$/.test(val)) setForm((f) => ({ ...f, bodyFat: val }))
+              }}
               className="bg-background"
             />
           </div>
@@ -220,6 +241,32 @@ export function BodyMeasurements() {
           <AddEntryButton />
         </Card>
       </div>
+
+      {/* Log Table */}
+      {hasData && (
+        <Card className="p-4 bg-card border-border">
+          <h3 className="font-semibold text-foreground text-sm mb-3">Weight Log</h3>
+          <div className="space-y-0 divide-y divide-border/40">
+            {[...entries].reverse().map((e, i) => {
+              const d = new Date(e.date)
+              const dateStr = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+              const timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
+              return (
+                <div key={i} className="flex items-center justify-between py-2.5">
+                  <div>
+                    <p className="text-sm text-foreground font-medium">{dateStr}</p>
+                    <p className="text-xs text-muted-foreground">{timeStr}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-primary">{e.weight} kg</p>
+                    {e.bodyFat && <p className="text-xs text-muted-foreground">{e.bodyFat}% BF</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Chart */}
       {hasData ? (
