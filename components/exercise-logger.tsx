@@ -149,17 +149,26 @@ export function ExerciseLogger({
     onUpdate({ ...exercise, sets: updatedSets })
   }
 
-  function isNewPR(set: Set): boolean {
-    if (!set.reps) return false
-    if (!personalRecord) return false
-    if (isBodyweight) {
-      // For bodyweight, PR is just max reps
-      return set.reps > personalRecord.reps
-    }
+  function beats(set: Set, ref: { weight: number; reps: number }): boolean {
+    if (isBodyweight) return set.reps > ref.reps
     return (
-      set.weight > personalRecord.weight ||
-      (set.weight === personalRecord.weight && set.reps > personalRecord.reps)
+      set.weight > ref.weight ||
+      (set.weight === ref.weight && set.reps > ref.reps)
     )
+  }
+
+  function isNewPR(set: Set, currentSetIndex: number): boolean {
+    if (!set.reps) return false
+    if (personalRecord && !beats(set, personalRecord)) return false
+    if (!personalRecord) return false
+    // Also must beat every already-completed set in this session
+    for (let i = 0; i < exercise.sets.length; i++) {
+      if (i === currentSetIndex) continue
+      const other = exercise.sets[i]
+      if (!other.completed) continue
+      if (!beats(set, other)) return false
+    }
+    return true
   }
 
   const completeSet = (setIndex: number) => {
@@ -185,7 +194,7 @@ export function ExerciseLogger({
 
     // PR detection (use effective weight for comparison)
     const effectiveSet = { ...set, weight: effectiveWeight }
-    if (isNewPR(effectiveSet)) {
+    if (isNewPR(effectiveSet, setIndex)) {
       setPrSetIndices((prev) => new Set([...prev, setIndex]))
       const prLabel = isBodyweight
         ? `${exercise.name} — ${set.reps} reps`
