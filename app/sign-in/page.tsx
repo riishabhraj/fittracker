@@ -1,6 +1,6 @@
 "use client"
 
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState } from "react"
@@ -67,8 +67,20 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
         })
         const data = await res.json()
         if (data.ok) {
-          // Small delay to let the browser persist the session cookie
-          await new Promise((r) => setTimeout(r, 300))
+          // Poll until the session cookie is actually readable before
+          // navigating — avoids race where "/" loads before the cookie
+          // has propagated and the user is bounced back to /sign-in.
+          let session = null
+          for (let i = 0; i < 15; i++) {
+            session = await getSession()
+            if (session?.user) break
+            await new Promise((r) => setTimeout(r, 200))
+          }
+          if (!session?.user) {
+            setError("Signed in but session didn't stick. Please try once more.")
+            setLoading(false)
+            return
+          }
           window.location.href = "/"
         } else {
           setError(data.error ?? "Google sign-in failed. Please try again.")
@@ -176,17 +188,49 @@ function SignInForm({ oauthError }: { oauthError: string | null }) {
     }
 
     setLoading(true)
-    const result = await signIn("credentials", { email, password, callbackUrl: "/", redirect: false })
-    setLoading(false)
+    let result
+    try {
+      result = await signIn("credentials", { email, password, callbackUrl: "/", redirect: false })
+    } catch {
+      setError("Network error. Please check your connection and try again.")
+      setLoading(false)
+      return
+    }
 
     if (result?.error === "EmailNotVerified") {
       setUnverifiedEmail(email)
       setError("EmailNotVerified")
-    } else if (result?.error) {
-      setError(OAUTH_ERRORS[result.error] ?? "Invalid email or password.")
-    } else if (result?.url) {
-      window.location.href = result.url
+      setLoading(false)
+      return
     }
+    if (result?.error) {
+      setError(OAUTH_ERRORS[result.error] ?? "Invalid email or password.")
+      setLoading(false)
+      return
+    }
+    if (!result?.ok) {
+      setError("Sign-in failed. Please try again.")
+      setLoading(false)
+      return
+    }
+
+    // Wait for the session cookie to propagate before navigating.
+    // Without this, the home page can see no session on first load and
+    // bounce back to /sign-in — the "not working on one go" bug.
+    let session = null
+    for (let i = 0; i < 15; i++) {
+      session = await getSession()
+      if (session?.user) break
+      await new Promise((r) => setTimeout(r, 200))
+    }
+
+    if (!session?.user) {
+      setError("Signed in but session didn't stick. Please try once more.")
+      setLoading(false)
+      return
+    }
+
+    window.location.href = result.url ?? "/"
   }
 
   const handleResendFromSignIn = async () => {
@@ -298,8 +342,18 @@ function RegisterForm() {
 
       // Fallback: auto sign-in (should not be reached)
       const result = await signIn("credentials", { email, password, callbackUrl: "/", redirect: false })
-      if (result?.url) window.location.href = result.url
-      else setError("Account created but sign-in failed. Please sign in manually.")
+      if (!result?.ok) {
+        setError("Account created but sign-in failed. Please sign in manually.")
+        setLoading(false)
+        return
+      }
+      let session = null
+      for (let i = 0; i < 15; i++) {
+        session = await getSession()
+        if (session?.user) break
+        await new Promise((r) => setTimeout(r, 200))
+      }
+      window.location.href = result.url ?? "/"
     } catch {
       setError("Something went wrong. Please try again.")
     }

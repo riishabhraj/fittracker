@@ -89,7 +89,7 @@ export default function RootLayout({
                   if (window.caches) {
                     caches.keys().then(function(keys) {
                       keys.forEach(function(key) {
-                        if (!key.includes('v3')) caches.delete(key);
+                        if (!key.includes('v4')) caches.delete(key);
                       });
                     });
                   }

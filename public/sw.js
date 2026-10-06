@@ -1,6 +1,6 @@
-const CACHE_VERSION = "fittracker-v3"
-const STATIC_CACHE = "fittracker-static-v3"
-const DYNAMIC_CACHE = "fittracker-dynamic-v3"
+const CACHE_VERSION = "fittracker-v4"
+const STATIC_CACHE = "fittracker-static-v4"
+const DYNAMIC_CACHE = "fittracker-dynamic-v4"
 const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE]
 
 // Only cache these stable public assets
@@ -51,7 +51,12 @@ self.addEventListener("fetch", (event) => {
   // 2. Never intercept .well-known, chrome-extension probes, etc.
   if (url.pathname.startsWith("/.well-known/")) return
 
-  // 3. Navigation requests (HTML pages) — network-first, fall back to cache
+  // 3. Never intercept API routes. Caching /api/auth/session would return a
+  //    stale unauthenticated response after sign-in and cause login loops.
+  //    Other /api/* endpoints are user-scoped and must not be cached either.
+  if (url.pathname.startsWith("/api/")) return
+
+  // 4. Navigation requests (HTML pages) — network-first, fall back to cache
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
