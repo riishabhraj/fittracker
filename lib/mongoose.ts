@@ -26,9 +26,7 @@ async function connectDB(): Promise<void> {
       throw err
     })
 
-  if (process.env.NODE_ENV === "development") {
-    global._mongooseConn = promise
-  }
+  global._mongooseConn = promise
 
   await promise
 }

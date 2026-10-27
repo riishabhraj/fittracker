@@ -40,10 +40,82 @@ export interface WorkoutTemplate {
 
 // ── Core CRUD (API-backed) ────────────────────────────────────────────────────
 
+// Every screen mounts several components that each call getWorkouts(). Without
+// sharing, one page load downloaded the full history 5-10 times. This keeps one
+// in-flight request, a short in-memory TTL, and a localStorage copy so the app
+// opens instantly (stale-while-revalidate) instead of waiting on the network.
+const CACHE_KEY = "fittracker_workouts_cache_v1"
+const FRESH_MS = 60_000
+let memCache: { data: Workout[]; at: number } | null = null
+let inflight: Promise<Workout[]> | null = null
+
+const readPersisted = (): Workout[] | null => {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(CACHE_KEY) : null
+    return raw ? (JSON.parse(raw) as Workout[]) : null
+  } catch {
+    return null
+  }
+}
+
+const writePersisted = (data: Workout[]) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+  } catch {
+    // quota exceeded or storage blocked — memory cache still works
+  }
+}
+
+let generation = 0
+
+export const clearWorkoutCache = () => {
+  generation++
+  memCache = null
+  inflight = null
+  try {
+    localStorage.removeItem(CACHE_KEY)
+  } catch {}
+}
+
+const fetchWorkoutsFromApi = (): Promise<Workout[]> => {
+  if (inflight) return inflight
+  const startedAt = generation
+  const request: Promise<Workout[]> = (async () => {
+    try {
+      const res = await fetch("/api/workouts")
+      if (res.status === 401) clearWorkoutCache()
+      if (!res.ok) throw new Error(`Failed to fetch workouts (${res.status})`)
+      const data: Workout[] = await res.json()
+      if (startedAt === generation) {
+        memCache = { data, at: Date.now() }
+        writePersisted(data)
+      }
+      return data
+    } finally {
+      if (startedAt === generation) inflight = null
+    }
+  })()
+  inflight = request
+  return request
+}
+
 export const getWorkouts = async (): Promise<Workout[]> => {
-  const res = await fetch("/api/workouts")
-  if (!res.ok) throw new Error(`Failed to fetch workouts (${res.status})`)
-  return res.json()
+  if (memCache && Date.now() - memCache.at < FRESH_MS) return memCache.data
+
+  // Stale (or cold-start) copy available: serve it immediately, refresh in the
+  // background, and tell mounted components to re-read once fresh data lands.
+  const stale = memCache?.data ?? readPersisted()
+  if (stale) {
+    if (!memCache) memCache = { data: stale, at: 0 }
+    if (!inflight) {
+      fetchWorkoutsFromApi()
+        .then(() => window.dispatchEvent(new CustomEvent("workoutDataChanged")))
+        .catch(() => {})
+    }
+    return stale
+  }
+
+  return fetchWorkoutsFromApi()
 }
 
 export const saveWorkout = async (workout: Omit<Workout, "id"> & { id?: string }): Promise<void> => {
@@ -56,12 +128,14 @@ export const saveWorkout = async (workout: Omit<Workout, "id"> & { id?: string }
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error ?? `Failed to save workout (${res.status})`)
   }
+  clearWorkoutCache()
   window.dispatchEvent(new CustomEvent("workoutDataChanged"))
 }
 
 export const deleteWorkout = async (id: string): Promise<void> => {
   const res = await fetch(`/api/workouts/${id}`, { method: "DELETE" })
   if (!res.ok) throw new Error(`Failed to delete workout (${res.status})`)
+  clearWorkoutCache()
   window.dispatchEvent(new CustomEvent("workoutDataChanged"))
 }
 
