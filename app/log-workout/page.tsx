@@ -443,6 +443,11 @@ function LogWorkoutContent() {
     if (isSaving) return
     setWorkoutName(confirmedName)
     setIsSaving(true)
+    // Captured before the try block so the catch below can restore it. It used to
+    // be declared inside `try`, so a failed save (e.g. no signal at the gym) threw
+    // a ReferenceError in the catch, left the button stuck on "saving" and lost the
+    // in-progress workout because the session had already been cleared.
+    const sessionSnapshot = getWorkoutSession()
     try {
       const completedExercises = exercises
         .map((ex) => ({
@@ -475,7 +480,6 @@ function LogWorkoutContent() {
 
       // Use the stable workoutId from the active session so re-saves upsert
       // rather than create duplicate entries (back button, app resume, etc.)
-      const sessionSnapshot = getWorkoutSession()
       const stableId = sessionSnapshot?.workoutId ?? ""
 
       // Prevent the debounced auto-save from re-writing the session after we

@@ -1,6 +1,7 @@
 "use client"
 
 import { signIn, getSession } from "next-auth/react"
+import { clearWorkoutCache } from "@/lib/workout-storage"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState } from "react"
@@ -81,6 +82,7 @@ function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
             setLoading(false)
             return
           }
+          clearWorkoutCache()
           window.location.href = "/"
         } else {
           setError(data.error ?? "Google sign-in failed. Please try again.")
@@ -230,6 +232,7 @@ function SignInForm({ oauthError }: { oauthError: string | null }) {
       return
     }
 
+    clearWorkoutCache()
     window.location.href = result.url ?? "/"
   }
 
@@ -353,6 +356,7 @@ function RegisterForm() {
         if (session?.user) break
         await new Promise((r) => setTimeout(r, 200))
       }
+      clearWorkoutCache()
       window.location.href = result.url ?? "/"
     } catch {
       setError("Something went wrong. Please try again.")

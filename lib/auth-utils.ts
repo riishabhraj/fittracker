@@ -1,10 +1,15 @@
 import { signOut } from "next-auth/react"
+import { clearWorkoutCache } from "@/lib/workout-storage"
 
 /**
  * Robust logout: clears Auth.js session + any stale cookie variants,
  * then hard-navigates to /sign-in to ensure a clean state.
  */
 export async function robustSignOut() {
+  // 0. Drop the cached workout history so the next account that signs in on this
+  // device can never be shown the previous account's data.
+  clearWorkoutCache()
+
   // 1. Let Auth.js clear its own cookies
   try {
     await signOut({ redirect: false })
