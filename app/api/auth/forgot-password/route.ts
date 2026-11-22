@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { EMAIL_AUTH_ENABLED, EMAIL_AUTH_DISABLED_MESSAGE } from "@/lib/auth-flags"
 import crypto from "crypto"
 import { Resend } from "resend"
 import connectDB from "@/lib/mongoose"
@@ -6,6 +7,9 @@ import { User } from "@/lib/models/user"
 import { PasswordResetToken } from "@/lib/models/password-reset-token"
 
 export async function POST(req: NextRequest) {
+  if (!EMAIL_AUTH_ENABLED) {
+    return NextResponse.json({ error: EMAIL_AUTH_DISABLED_MESSAGE }, { status: 403 })
+  }
   try {
     const { email } = await req.json()
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

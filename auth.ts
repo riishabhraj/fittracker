@@ -6,6 +6,7 @@ import clientPromise from "@/lib/mongodb"
 import connectDB from "@/lib/mongoose"
 import { User } from "@/lib/models/user"
 import authConfig from "./auth.config"
+import { EMAIL_AUTH_ENABLED } from "@/lib/auth-flags"
 
 class OAuthAccountError extends CredentialsSignin {
   code = "OAuthAccount"
@@ -28,6 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (!EMAIL_AUTH_ENABLED) return null // Google-only mode, see lib/auth-flags.ts
         const email    = (credentials?.email    as string | undefined)?.toLowerCase().trim()
         const password =  credentials?.password as string | undefined
         if (!email || !password) return null

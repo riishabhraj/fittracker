@@ -2,6 +2,7 @@
 
 import { signIn, getSession } from "next-auth/react"
 import { clearWorkoutCache } from "@/lib/workout-storage"
+import { EMAIL_AUTH_ENABLED } from "@/lib/auth-flags"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState } from "react"
@@ -395,6 +396,38 @@ function SignInContent() {
   const oauthError = errorCode ? (OAUTH_ERRORS[errorCode] ?? OAUTH_ERRORS.Default) : null
 
   const [mode, setMode] = useState<"signin" | "register">("signin")
+
+  // Google-only mode (see lib/auth-flags.ts). The email forms below are kept intact
+  // so re-enabling is just an env var flip.
+  if (!EMAIL_AUTH_ENABLED) {
+    return (
+      <div className="h-screen overflow-hidden bg-background flex flex-col items-center justify-center px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="flex flex-col items-center mb-6">
+          <Image src="/fittracker-app-icon.png" alt="FitTracker" width={56} height={56} className="rounded-2xl mb-3 shadow-lg" />
+          <h1 className="text-2xl font-bold text-foreground">FitTracker</h1>
+          <p className="text-muted-foreground text-sm mt-1 text-center">Track workouts, hit PRs, build habits.</p>
+        </div>
+
+        <div className="w-full max-w-sm">
+          <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
+            {oauthError && (
+              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
+                {oauthError}
+              </p>
+            )}
+            <GoogleButton label="Continue with Google" />
+            <p className="text-[11px] text-muted-foreground text-center">
+              Signed up with email before? Continue with Google using that same email address to get back to your data.
+            </p>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground mt-4 text-center">
+          Your data is private and stored securely.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col items-center justify-center px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>

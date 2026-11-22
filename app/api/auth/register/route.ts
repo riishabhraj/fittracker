@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { EMAIL_AUTH_ENABLED, EMAIL_AUTH_DISABLED_MESSAGE } from "@/lib/auth-flags"
 import bcrypt from "bcryptjs"
 import { Resend } from "resend"
 import connectDB from "@/lib/mongoose"
@@ -6,6 +7,9 @@ import { User } from "@/lib/models/user"
 import { OtpToken } from "@/lib/models/otp-token"
 
 export async function POST(req: NextRequest) {
+  if (!EMAIL_AUTH_ENABLED) {
+    return NextResponse.json({ error: EMAIL_AUTH_DISABLED_MESSAGE }, { status: 403 })
+  }
   try {
     let body: any
     try {
